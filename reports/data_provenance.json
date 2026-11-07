@@ -1,0 +1,37 @@
+{
+  "seed": 42,
+  "source": "PS_20174392719_1491204439457_log.csv",
+  "source_sha256": "16910f90577b0d981bf8ff289714510bb89bc71bff7d3f220f024e287e4eea6b",
+  "transaction_types": [
+    "TRANSFER",
+    "CASH_OUT"
+  ],
+  "excluded_post_transaction_columns": [
+    "isFlaggedFraud",
+    "newbalanceDest",
+    "newbalanceOrig"
+  ],
+  "partitions": {
+    "train": {
+      "rows": 1938484,
+      "fraud_count": 3633,
+      "min_step": 1,
+      "max_step": 322,
+      "sha256": "2b6124ff530294ffe64bd3d56cd78fc89ff05255073c7d3faaaca000654036cf"
+    },
+    "validation": {
+      "rows": 415628,
+      "fraud_count": 560,
+      "min_step": 323,
+      "max_step": 376,
+      "sha256": "482f45edf1e34bf73748a652816985358496e4ae2d7b2530b3f5ae341830236c"
+    },
+    "test": {
+      "rows": 416297,
+      "fraud_count": 4020,
+      "min_step": 377,
+      "max_step": 743,
+      "sha256": "1980a9d55293583687be5c129a75a5c322aced3a3188d8a056bc36b0dba2b780"
+    }
+  }
+}

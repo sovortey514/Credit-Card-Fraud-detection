@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -32,16 +31,11 @@ print(f"Fraud percentage: {fraud_rate:.4f}%")
 print("\n===== TRANSACTION TYPES =====")
 type_summary = (
     df.groupby("type")
-    .agg(
-        total=("isFraud", "size"),
-        fraud=("isFraud", "sum")
-    )
+    .agg(total=("isFraud", "size"), fraud=("isFraud", "sum"))
     .reset_index()
 )
 
-type_summary["fraud_rate_percent"] = (
-    type_summary["fraud"] / type_summary["total"] * 100
-)
+type_summary["fraud_rate_percent"] = type_summary["fraud"] / type_summary["total"] * 100
 
 print(type_summary.to_string(index=False))
 
@@ -53,33 +47,26 @@ print("\n===== AMOUNT STATISTICS =====")
 print(df["amount"].describe())
 
 # Save research results
-type_summary.to_csv(
-    REPORT_DIR / "transaction_type_summary.csv",
-    index=False
-)
+type_summary.to_csv(REPORT_DIR / "transaction_type_summary.csv", index=False)
 
-missing.to_csv(
-    REPORT_DIR / "missing_values.csv",
-    header=["missing_count"]
-)
+missing.to_csv(REPORT_DIR / "missing_values.csv", header=["missing_count"])
 
-pd.DataFrame({
-    "metric": [
-        "total_transactions",
-        "fraud_transactions",
-        "legitimate_transactions",
-        "fraud_rate_percent"
-    ],
-    "value": [
-        len(df),
-        int(df["isFraud"].sum()),
-        int((df["isFraud"] == 0).sum()),
-        fraud_rate
-    ]
-}).to_csv(
-    REPORT_DIR / "dataset_summary.csv",
-    index=False
-)
+pd.DataFrame(
+    {
+        "metric": [
+            "total_transactions",
+            "fraud_transactions",
+            "legitimate_transactions",
+            "fraud_rate_percent",
+        ],
+        "value": [
+            len(df),
+            int(df["isFraud"].sum()),
+            int((df["isFraud"] == 0).sum()),
+            fraud_rate,
+        ],
+    }
+).to_csv(REPORT_DIR / "dataset_summary.csv", index=False)
 
 # Fraud distribution chart
 fig, ax = plt.subplots(figsize=(7, 5))
@@ -90,10 +77,7 @@ ax.set_xlabel("Fraud Label (0 = Normal, 1 = Fraud)")
 ax.set_ylabel("Number of Transactions")
 
 plt.tight_layout()
-plt.savefig(
-    REPORT_DIR / "fraud_distribution.png",
-    dpi=150
-)
+plt.savefig(REPORT_DIR / "fraud_distribution.png", dpi=150)
 plt.close()
 
 print("\nEDA completed successfully!")

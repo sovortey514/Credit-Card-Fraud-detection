@@ -16,7 +16,7 @@ MODEL_PATH = ROOT / "models" / "xgboost.joblib"
 app = FastAPI(
     title="Money Transfer Fraud Detection API",
     version="1.0.0",
-    description="Research prototype using PaySim data"
+    description="Research prototype using PaySim data",
 )
 
 # 2. Add the homepage AFTER creating app
@@ -32,20 +32,20 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+
 @app.get("/")
 def home():
     return {
         "application": "Money Transfer Fraud Detection API",
         "status": "running",
         "documentation": "/docs",
-        "health_check": "/health"
+        "health_check": "/health",
     }
+
 
 # 3. Load the trained model
 if not MODEL_PATH.exists():
-    raise FileNotFoundError(
-        f"Model not found: {MODEL_PATH}"
-    )
+    raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
 
 artifact = joblib.load(MODEL_PATH)
 

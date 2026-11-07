@@ -1,0 +1,4 @@
+[flake8]
+ignore = E501,E226
+per-file-ignores =
+    backend/main.py:F401
