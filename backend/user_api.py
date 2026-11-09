@@ -1,10 +1,11 @@
 """FastAPI authentication and User Management service."""
 
+import logging
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 from src.user_database import (
     authenticate,
@@ -22,6 +23,7 @@ from src.user_database import (
 
 
 app = FastAPI(title="TransferGuard User Management API", version="1.0.0")
+logger = logging.getLogger("transferguard.user_api")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -37,12 +39,12 @@ def startup() -> None:
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str = Field(min_length=8)
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 
 class ResetPasswordRequest(BaseModel):
@@ -52,14 +54,14 @@ class ResetPasswordRequest(BaseModel):
 
 class UserCreateRequest(BaseModel):
     name: str = Field(min_length=2, max_length=120)
-    email: EmailStr
-    role: str = Field(pattern="^(admin|analyst|customer|compliance)$")
+    email: str
+    role: str = Field(pattern="^(admin|administrator|risk_manager|analyst|customer|compliance)$")
     password: str = Field(min_length=8)
 
 
 class UserUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=120)
-    role: Optional[str] = Field(default=None, pattern="^(admin|analyst|customer|compliance)$")
+    role: Optional[str] = Field(default=None, pattern="^(admin|administrator|risk_manager|analyst|customer|compliance)$")
     is_active: Optional[bool] = None
 
 
@@ -77,7 +79,7 @@ def current_user(authorization: Optional[str] = Header(default=None)) -> dict:
 
 
 def admin_only(user: dict = Depends(current_user)) -> dict:
-    if user.get("role") != "admin":
+    if user.get("role") not in {"admin", "administrator", "risk_manager"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required")
     return user
 
@@ -87,9 +89,22 @@ def health() -> dict:
     return {"status": "ok", "service": "user-api"}
 
 
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": "TransferGuard User Management API",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.post("/api/v1/auth/login")
 def login(payload: LoginRequest) -> dict:
-    result = authenticate(str(payload.email), payload.password)
+    try:
+        result = authenticate(str(payload.email), payload.password)
+    except Exception as exc:
+        logger.exception("Login failed while accessing the user database")
+        raise HTTPException(status_code=503, detail="User database authentication failed") from exc
     if not result:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     return result

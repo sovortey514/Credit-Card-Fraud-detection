@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AuthScreen, DEMO_PASSWORD, DEMO_USERS, UserManagement, roleLabel, type SessionUser } from './auth';
+import { AUTH_API_URL, AuthScreen, UserManagement, apiError, roleLabel, toSessionUser, type SessionUser } from './auth';
 import type { Language } from './i18n';
 import './style.css';
 
@@ -32,11 +32,16 @@ const labels = {
 } as const;
 
 function App() {
-  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(() => {
+    const stored = sessionStorage.getItem('transferguard-user');
+    return stored ? JSON.parse(stored) as SessionUser : null;
+  });
   const [authToken, setAuthToken] = useState(() => sessionStorage.getItem('transferguard-token') ?? '');
+  const [refreshToken, setRefreshToken] = useState(() => sessionStorage.getItem('transferguard-refresh-token') ?? '');
   const [language, setLanguage] = useState<Language>(() => localStorage.getItem('transferguard-language') === 'km' ? 'km' : 'en');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('transferguard-theme') === 'dark' ? 'dark' : 'light');
   const copy = labels[language];
+  const canManageUsers = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
   const [route, setRoute] = useState<'overview' | 'score' | 'activity' | 'users'>(() => window.location.hash === '#users' ? 'users' : 'overview');
   const [assessmentOpen, setAssessmentOpen] = useState(false);
   const [amount, setAmount] = useState(1250);
@@ -47,6 +52,7 @@ function App() {
   const [result, setResult] = useState<ApiResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retrainingNotice, setRetrainingNotice] = useState('');
 
   async function refreshTransactions() {
     try {
@@ -63,34 +69,33 @@ function App() {
   useEffect(() => {
     const syncRoute = () => {
       const nextRoute = window.location.hash === '#users' ? 'users' : 'overview';
-      setRoute(nextRoute === 'users' && currentUser?.role !== 'admin' ? 'overview' : nextRoute);
+      setRoute(nextRoute === 'users' && !canManageUsers ? 'overview' : nextRoute);
     };
     window.addEventListener('hashchange', syncRoute);
     return () => window.removeEventListener('hashchange', syncRoute);
-  }, [currentUser]);
+  }, [currentUser, canManageUsers]);
 
   async function login(email: string, password: string) {
-    try {
-      const response = await fetch(API_URL + '/api/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? 'Unable to sign in');
-      setCurrentUser(data.user);
-      setAuthToken(data.token);
-      sessionStorage.setItem('transferguard-token', data.token);
-    } catch (caught) {
-      const demoUser = DEMO_USERS.find((user) => user.email === email.trim().toLowerCase() && user.active);
-      if (!demoUser || password !== DEMO_PASSWORD) throw (caught instanceof Error ? caught : new Error('Unable to sign in'));
-      setCurrentUser({ ...demoUser });
-      setAuthToken('');
-      sessionStorage.removeItem('transferguard-token');
-    }
+    const response = await fetch(`${AUTH_API_URL}/api/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), password }) });
+    if (!response.ok) throw await apiError(response, 'Unable to sign in');
+    const data = await response.json() as { access_token: string; refresh_token: string; user: Parameters<typeof toSessionUser>[0] };
+    const user = toSessionUser(data.user);
+    setCurrentUser(user);
+    setAuthToken(data.access_token);
+    setRefreshToken(data.refresh_token);
+    sessionStorage.setItem('transferguard-token', data.access_token);
+    sessionStorage.setItem('transferguard-refresh-token', data.refresh_token);
+    sessionStorage.setItem('transferguard-user', JSON.stringify(user));
     window.location.hash = '#overview';
   }
 
   async function logout() {
-    if (authToken) await fetch(API_URL + '/api/v1/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + authToken } });
+    if (authToken) await fetch(`${AUTH_API_URL}/api/v1/auth/logout`, { method: 'POST', headers: { Authorization: 'Bearer ' + authToken, 'Content-Type': 'application/json' }, body: refreshToken ? JSON.stringify({ refresh_token: refreshToken }) : undefined });
     sessionStorage.removeItem('transferguard-token');
+    sessionStorage.removeItem('transferguard-refresh-token');
+    sessionStorage.removeItem('transferguard-user');
     setAuthToken('');
+    setRefreshToken('');
     setCurrentUser(null);
     window.location.hash = '#login';
     setRoute('overview');
@@ -129,6 +134,15 @@ function App() {
   const ruleBlocked = transactions.filter((item) => item.decision === 'FLAGGED_BY_RULES').length;
   const mlBlocked = transactions.filter((item) => item.decision === 'FLAGGED_BY_ML').length;
   const labeled = transactions.filter((item) => item.confirmed_label !== null && item.confirmed_label !== undefined).length;
+  const retrainingTarget = 50;
+  const confirmedFraud = transactions.filter((item) => item.confirmed_label === 1).length;
+  const falsePositives = transactions.filter((item) => item.confirmed_label === 0).length;
+  const pendingReview = transactions.filter((item) => {
+    const flagged = item.status === 'REJECTED' || item.decision === 'FLAGGED_BY_RULES' || item.decision === 'FLAGGED_BY_ML';
+    return flagged && (item.confirmed_label === null || item.confirmed_label === undefined);
+  }).length;
+  const retrainingReady = labeled >= retrainingTarget;
+  const retrainingProgress = Math.min(100, Math.round((labeled / retrainingTarget) * 100));
   const buckets = useMemo(() => [
     transactions.filter((item) => item.risk_score < 0.2).length,
     transactions.filter((item) => item.risk_score >= 0.2 && item.risk_score < 0.5).length,
@@ -146,18 +160,46 @@ function App() {
         <a className={`nav-link ${route === 'overview' ? 'active' : ''}`} href="#overview" onClick={() => setRoute('overview')}>▦ <span>{copy.overview}</span></a>
         {currentUser.role !== 'compliance' && <button className={`nav-link ${route === 'score' ? 'active' : ''}`} type="button" onClick={() => { setRoute('score'); setAssessmentOpen(true); }}>⌁ <span>{copy.score}</span></button>}
         {currentUser.role !== 'customer' && <a className={`nav-link ${route === 'activity' ? 'active' : ''}`} href="#activity" onClick={() => setRoute('activity')}>☷ <span>{copy.activity}</span></a>}
-        {currentUser.role === 'admin' && <button className={`nav-link ${route === 'users' ? 'active' : ''}`} type="button" onClick={() => { setRoute('users'); window.location.hash = '#users'; }}>♙ <span>{copy.users}</span></button>}
+        {canManageUsers && <button className={`nav-link ${route === 'users' ? 'active' : ''}`} type="button" onClick={() => { setRoute('users'); window.location.hash = '#users'; }}>♙ <span>{copy.users}</span></button>}
       </nav>
       <div className="sidebar-bottom"><div className="environment"><span className="status-dot" />{copy.api}</div><div className="profile-row"><div className="avatar">{currentUser.name.slice(0, 2).toUpperCase()}</div><div className="profile-details"><strong>{currentUser.name}</strong><span>{roleLabel(currentUser.role, language)}</span></div><button type="button" className="logout-button" onClick={logout} title={copy.logout} aria-label={copy.logout}>↪<span>{copy.logout}</span></button></div></div>
     </aside>
     <main className="main-content"><div className="dashboard-toolbar"><span>{copy.language}</span><button className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>EN</button><button className={language === 'km' ? 'active' : ''} onClick={() => setLanguage('km')}>ខ្មែរ</button><button className="theme-button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀ ' + copy.light : '☾ ' + copy.dark}</button></div>
-      {route === 'users' && currentUser.role === 'admin' ? <section className="page-content" id="users"><button className="outline-action" onClick={() => { setRoute('overview'); window.location.hash = '#overview'; }}>{copy.back}</button><h1>User management.</h1><UserManagement currentUser={currentUser} language={language} token={authToken} /></section> : <div className="page-content" id="overview">
+      {route === 'users' && canManageUsers ? <section className="page-content" id="users"><button className="outline-action" onClick={() => { setRoute('overview'); window.location.hash = '#overview'; }}>{copy.back}</button><h1>User management.</h1><UserManagement currentUser={currentUser} language={language} token={authToken} /></section> : <div className="page-content" id="overview">
         <section className="page-heading"><div><div className="eyebrow">{copy.eyebrow}</div><h1>{copy.title}<span>.</span></h1><p>{copy.subtitle}</p></div>{currentUser.role !== 'compliance' && <button className="outline-action" type="button" onClick={() => setAssessmentOpen(true)}>{copy.newAssessment}</button>}</section>
         <section className="metric-grid hybrid-kpis">
           <article className="metric-card"><div className="metric-top"><span>{copy.evaluated}</span></div><div className="metric-value">{evaluated}</div><div className="metric-foot">Live SQLite activity log</div></article>
           <article className="metric-card"><div className="metric-top"><span>{copy.blocked}</span></div><div className="metric-value">{blocked.length}</div><div className="metric-foot">{ruleBlocked} rules · {mlBlocked} ML</div></article>
           <article className="metric-card"><div className="metric-top"><span>{copy.approval}</span></div><div className="metric-value">{evaluated ? `${Math.round((evaluated - blocked.length) / evaluated * 100)}%` : '--'}</div><div className="metric-foot">Rejected transactions: {blocked.length}</div></article>
           <article className="metric-card"><div className="metric-top"><span>{copy.queue}</span></div><div className="metric-value">{labeled} / 50</div><div className="metric-foot">Verified analyst labels</div></article>
+        </section>
+        <section className="panel retraining-card" aria-labelledby="retraining-queue-title">
+          <div className="retraining-card-header">
+            <div>
+              <div className="retraining-kicker">ANALYST FEEDBACK &amp; RETRAINING</div>
+              <h2 id="retraining-queue-title">Model Retraining Queue</h2>
+              <p>Track verified feedback before the next model cycle.</p>
+            </div>
+            <span className={`retraining-status ${retrainingReady ? 'is-ready' : ''}`}>
+              {retrainingReady ? '🟢 Retraining Ready' : '⚪ Collecting Feedback'}
+            </span>
+          </div>
+          <div className="retraining-progress-row">
+            <div className="retraining-progress-track" aria-label={`${labeled} of ${retrainingTarget} labels collected`}><span className={retrainingReady ? 'is-ready' : ''} style={{ width: `${retrainingProgress}%` }} /></div>
+            <strong>{labeled} / {retrainingTarget} labels ({retrainingProgress}%)</strong>
+          </div>
+          <div className="retraining-metrics">
+            <div><span>Confirmed Fraud</span><strong>{confirmedFraud}</strong><small>Verified as real fraud</small></div>
+            <div><span>False Positives</span><strong>{falsePositives}</strong><small>Legitimate transactions</small></div>
+            <div><span>Pending Review</span><strong>{pendingReview}</strong><small>Awaiting analyst inspection</small></div>
+          </div>
+          {labeled === 0 && <p className="retraining-empty">No feedback recorded yet. Score a transaction above and mark it in the Activity Log.</p>}
+          {retrainingNotice && <p className="retraining-notice" role="status">{retrainingNotice}</p>}
+          <div className="retraining-actions">
+            <button className="retraining-trigger" type="button" disabled={!retrainingReady && !canManageUsers} onClick={() => setRetrainingNotice(retrainingReady ? 'Retraining cycle queued for the next model run.' : 'Manual retraining override queued by an administrator.')}>Trigger Retraining Now</button>
+            {!retrainingReady && !canManageUsers && <span>Available when 50 verified labels are collected.</span>}
+            {!retrainingReady && canManageUsers && <span>Administrator override enabled.</span>}
+          </div>
         </section>
         <section className="visual-grid">
           <article className="panel analytics-panel"><div className="panel-heading"><div><h2>Rule vs. ML distribution</h2><p>Rejection source across logged assessments</p></div></div><div className="split-bars"><div><strong>Stage 1 · Rules</strong><span>{ruleBlocked}</span><i style={{ width: `${blocked.length ? ruleBlocked / blocked.length * 100 : 0}%` }} /></div><div><strong>Stage 2 · CatBoost</strong><span>{mlBlocked}</span><i className="ml-bar" style={{ width: `${blocked.length ? mlBlocked / blocked.length * 100 : 0}%` }} /></div></div></article>

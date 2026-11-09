@@ -984,6 +984,123 @@ body { background: var(--overview-bg); color: var(--overview-text); }
 :root[data-theme='dark'] .user-create-modal { background: #172438; border-color: #334b68; }
 @media (max-width: 700px) { .user-directory-controls { flex-direction: column; } .user-directory-controls select, .user-search { width: 100%; } }
 
+/* Reference dashboard theme: navy canvas, electric blue accents, slate surfaces. */
+:root {
+  --ref-bg: #111b2c;
+  --ref-sidebar: #1c2a40;
+  --ref-sidebar-raised: #243858;
+  --ref-surface: #1b2940;
+  --ref-surface-raised: #22344f;
+  --ref-border: #2b3d59;
+  --ref-text: #f2f6fc;
+  --ref-muted: #91a1b8;
+  --ref-blue: #079df0;
+  --ref-blue-bright: #18b2ff;
+  --ref-purple: #8764e8;
+  --ref-green: #50bc68;
+  --ref-red: #d9657c;
+  --ref-orange: #f3ae4f;
+}
+
+body, .hybrid-dashboard {
+  background: var(--ref-bg);
+  color: var(--ref-text);
+}
+
+.hybrid-dashboard .sidebar {
+  width: 248px;
+  background: var(--ref-sidebar);
+  border-right: 1px solid rgba(255,255,255,.035);
+  box-shadow: 8px 0 28px rgba(0,0,0,.12);
+}
+.hybrid-dashboard .brand { padding-bottom: 34px; }
+.hybrid-dashboard .brand-mark { background: var(--ref-blue); color: #fff; box-shadow: 0 8px 20px rgba(7,157,240,.25); }
+.hybrid-dashboard .brand-name { color: var(--ref-text); }
+.hybrid-dashboard .brand-name span, .hybrid-dashboard .page-heading h1 span { color: var(--ref-blue-bright); }
+.hybrid-dashboard .workspace-label { color: #7e91ab; }
+.hybrid-dashboard .side-nav .nav-link { color: #aebbd0; border-radius: 12px; }
+.hybrid-dashboard .side-nav .nav-link.active { background: #23476f; color: #fff; box-shadow: inset 3px 0 0 var(--ref-blue-bright); }
+.hybrid-dashboard .side-nav .nav-link:hover { background: #203b5e; color: #fff; }
+.hybrid-dashboard .sidebar-bottom { border-color: var(--ref-border); }
+.hybrid-dashboard .environment { color: #9aabc1; }
+.hybrid-dashboard .status-dot { background: #58c978; box-shadow: 0 0 0 4px rgba(88,201,120,.12); }
+.hybrid-dashboard .profile-row { border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.06); }
+.hybrid-dashboard .profile-details strong { color: #f3f7fc; }
+.hybrid-dashboard .profile-details span { color: #9aabc1; }
+.hybrid-dashboard .logout-button { border-color: #3a5272; background: #243858; color: #d9e5f5; }
+
+.hybrid-dashboard .main-content { background: var(--ref-bg); }
+.hybrid-dashboard .dashboard-toolbar { color: var(--ref-muted); }
+.hybrid-dashboard .dashboard-toolbar button { color: var(--ref-muted); background: transparent; }
+.hybrid-dashboard .dashboard-toolbar button.active, .hybrid-dashboard .dashboard-toolbar .theme-button:hover { color: #fff; background: var(--ref-sidebar-raised); }
+.hybrid-dashboard .page-heading .eyebrow { color: var(--ref-blue-bright); }
+.hybrid-dashboard .page-heading h1 { color: var(--ref-text); }
+.hybrid-dashboard .page-heading p { color: var(--ref-muted); }
+.hybrid-dashboard .outline-action, .hybrid-dashboard .submit-button { background: var(--ref-blue); color: #fff; box-shadow: 0 8px 18px rgba(7,157,240,.2); }
+.hybrid-dashboard .outline-action:hover, .hybrid-dashboard .submit-button:hover { background: #0789d2; }
+
+.hybrid-dashboard .metric-card, .hybrid-dashboard .panel {
+  border-color: var(--ref-border);
+  border-radius: 15px;
+  background: var(--ref-surface);
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+}
+.hybrid-dashboard .metric-card:hover { border-color: #3b5578; }
+.hybrid-dashboard .metric-top, .hybrid-dashboard .panel-heading p, .hybrid-dashboard .metric-foot { color: var(--ref-muted); }
+.hybrid-dashboard .metric-value, .hybrid-dashboard .panel-heading h2 { color: var(--ref-text); }
+.hybrid-dashboard .metric-icon { background: rgba(7,157,240,.14); color: var(--ref-blue-bright); }
+.hybrid-dashboard .analytics-panel { border-top: 0; }
+.hybrid-dashboard .split-bars i, .hybrid-dashboard .histogram-column i { background: linear-gradient(180deg, #28b8ff, #087fc6); }
+.hybrid-dashboard .split-bars i.ml-bar { background: linear-gradient(180deg, #a17cff, #7652d0); }
+.hybrid-dashboard .period-label, .hybrid-dashboard .record-count { border-color: var(--ref-border); background: var(--ref-surface-raised); color: var(--ref-muted); }
+.hybrid-dashboard .activity-panel table th { color: #9bacbf; background: var(--ref-surface-raised); }
+.hybrid-dashboard .activity-panel table td { color: #c1ccdb; border-color: var(--ref-border); }
+.hybrid-dashboard .model-tag { color: #b8c7da; background: #263954; }
+.hybrid-dashboard .score-track { background: #30425d; }
+.hybrid-dashboard .score-track i { background: var(--ref-blue-bright); }
+.hybrid-dashboard .status-alert { color: #ffca79; background: rgba(243,174,79,.15); }
+.hybrid-dashboard .status-clear { color: #8ae19a; background: rgba(80,188,104,.15); }
+.hybrid-dashboard .empty-table, .hybrid-dashboard .page-footer { color: #7f91aa; }
+
+.hybrid-dashboard input, .hybrid-dashboard select, .hybrid-dashboard .user-search {
+  border-color: var(--ref-border);
+  border-radius: 9px;
+  background: #15243a;
+  color: var(--ref-text);
+}
+.hybrid-dashboard input:focus, .hybrid-dashboard select:focus { border-color: var(--ref-blue); box-shadow: 0 0 0 3px rgba(7,157,240,.14); }
+.hybrid-dashboard label { color: #b8c6d8; }
+.hybrid-dashboard .form-mark { color: var(--ref-blue-bright); background: rgba(7,157,240,.14); }
+.hybrid-dashboard .user-management-heading { background: linear-gradient(110deg, #1f4777, #087fbe); }
+.hybrid-dashboard .user-create-form, .hybrid-dashboard .user-directory-heading, .hybrid-dashboard .user-directory-controls { background: var(--ref-surface-raised); }
+.hybrid-dashboard .user-create-form, .hybrid-dashboard .user-directory { border-color: var(--ref-border); }
+.hybrid-dashboard .user-row { border-color: var(--ref-border); }
+.hybrid-dashboard .user-row:hover { background: #213754; }
+.hybrid-dashboard .user-avatar { background: rgba(7,157,240,.18); color: var(--ref-blue-bright); }
+.hybrid-dashboard .user-role-label { background: rgba(135,100,232,.2); color: #c6b4ff; }
+.hybrid-dashboard .user-add-button { background: var(--ref-blue); color: #fff; }
+
+.hybrid-dashboard .assessment-modal, .hybrid-dashboard .user-create-modal, .hybrid-dashboard .user-reset-modal {
+  border-color: var(--ref-border);
+  background: var(--ref-surface);
+  color: var(--ref-text);
+}
+.hybrid-dashboard .assessment-modal p, .hybrid-dashboard .user-create-modal small, .hybrid-dashboard .user-reset-modal p { color: var(--ref-muted); }
+.hybrid-dashboard .modal-close-button, .hybrid-dashboard .modal-cancel-button { border-color: var(--ref-border); background: var(--ref-surface-raised); color: #c3d0e0; }
+.hybrid-dashboard .modal-close-button:hover, .hybrid-dashboard .modal-cancel-button:hover { background: #2c4262; color: #fff; }
+
+.auth-shell { background: var(--ref-bg); color: var(--ref-text); }
+.auth-story { background: linear-gradient(145deg, #182a43 0%, #1d4b76 58%, #087fbe 100%); }
+.auth-panel { background: #121f32; border-color: var(--ref-border); }
+.auth-form input, .demo-account-choices button { border-color: var(--ref-border); background: #182a43; color: var(--ref-text); }
+.auth-form button { background: var(--ref-blue); }
+.auth-form button:hover:not(:disabled) { background: #0789d2; }
+
+@media (max-width: 900px) {
+  .hybrid-dashboard .sidebar { background: var(--ref-sidebar); }
+  .hybrid-dashboard .main-content { background: var(--ref-bg); }
+}
+
 /* Research-paper emerald security theme */
 :root {
   --navy: #064e3b;
@@ -1318,3 +1435,648 @@ body { background: var(--overview-bg); }
 @media (max-width: 680px) {
   .auth-panel { border-left: 0; border-top: 1px solid rgba(167,243,208,.12); }
 }
+
+/* Final cross-page palette normalization. Keep this block last so every route
+   shares the same navy canvas, slate surfaces, and blue brand accent. */
+:root {
+  --page-bg: #f4f7fb;
+  --page-sidebar: #ffffff;
+  --page-surface: #ffffff;
+  --page-surface-2: #f7faff;
+  --page-border: #dfe7f1;
+  --page-text: #1d2b42;
+  --page-muted: #718096;
+  --page-brand: #079df0;
+  --page-brand-hover: #18b2ff;
+}
+
+:root[data-theme='dark'] {
+  --page-bg: #111b2c;
+  --page-sidebar: #1c2a40;
+  --page-surface: #1b2940;
+  --page-surface-2: #22344f;
+  --page-border: #2d4160;
+  --page-text: #f2f6fc;
+  --page-muted: #91a1b8;
+}
+
+html, body, #root { min-height: 100%; background: var(--page-bg) !important; }
+body { color: var(--page-text) !important; }
+
+.hybrid-dashboard,
+.hybrid-dashboard .main-content,
+.hybrid-dashboard .page-content,
+.hybrid-dashboard .dashboard-toolbar { background: var(--page-bg) !important; color: var(--page-text) !important; }
+.hybrid-dashboard .sidebar { background: var(--page-sidebar) !important; }
+.hybrid-dashboard .nav-link { color: #607086 !important; }
+.hybrid-dashboard .nav-link:hover,
+.hybrid-dashboard .nav-link.active { background: #e9f5ff !important; color: #0868a2 !important; }
+.hybrid-dashboard .nav-link.active { box-shadow: inset 3px 0 0 var(--page-brand) !important; }
+
+.hybrid-dashboard .page-heading h1,
+.hybrid-dashboard .metric-value,
+.hybrid-dashboard .panel-heading h2,
+.hybrid-dashboard .user-identity strong,
+.hybrid-dashboard .user-create-form .user-form-heading strong,
+.hybrid-dashboard .user-directory-heading strong { color: var(--page-text) !important; }
+.hybrid-dashboard .page-heading p,
+.hybrid-dashboard .panel-heading p,
+.hybrid-dashboard .metric-top,
+.hybrid-dashboard .metric-foot,
+.hybrid-dashboard .page-footer,
+.hybrid-dashboard .empty-table { color: var(--page-muted) !important; }
+
+.hybrid-dashboard .metric-card,
+.hybrid-dashboard .panel,
+.hybrid-dashboard .user-directory,
+.hybrid-dashboard .assessment-modal,
+.hybrid-dashboard .user-create-modal,
+.hybrid-dashboard .user-reset-modal { background: var(--page-surface) !important; border-color: var(--page-border) !important; }
+.hybrid-dashboard .user-create-form,
+.hybrid-dashboard .user-directory-heading,
+.hybrid-dashboard .user-directory-controls,
+.hybrid-dashboard .activity-panel table th { background: var(--page-surface-2) !important; }
+.hybrid-dashboard .user-row,
+.hybrid-dashboard .activity-panel table td,
+.hybrid-dashboard .user-directory { border-color: var(--page-border) !important; }
+.hybrid-dashboard .user-row:hover { background: #294362 !important; }
+
+.hybrid-dashboard .outline-action,
+.hybrid-dashboard .submit-button,
+.hybrid-dashboard .user-add-button,
+.hybrid-dashboard .user-add-trigger .add-trigger-icon { background: var(--page-brand) !important; color: #fff !important; }
+.hybrid-dashboard .outline-action:hover,
+.hybrid-dashboard .submit-button:hover,
+.hybrid-dashboard .user-add-button:hover { background: #0789d2 !important; }
+.hybrid-dashboard input,
+.hybrid-dashboard select,
+.hybrid-dashboard .user-search,
+.hybrid-dashboard .password-reset-form input { background: #15243a !important; border-color: var(--page-border) !important; color: var(--page-text) !important; }
+.hybrid-dashboard input:focus,
+.hybrid-dashboard select:focus { border-color: var(--page-brand) !important; box-shadow: 0 0 0 3px rgba(7,157,240,.16) !important; }
+.hybrid-dashboard label { color: #b8c6d8 !important; }
+
+.auth-shell { background: var(--page-bg) !important; color: var(--page-text) !important; }
+.auth-story { background: linear-gradient(145deg, #182a43 0%, #1d4b76 58%, #087fbe 100%) !important; }
+.auth-panel { background: var(--page-surface) !important; border-color: var(--page-border) !important; }
+.auth-panel h2 { color: var(--page-text) !important; }
+.auth-subtitle, .demo-password, .auth-security-note, .auth-footer { color: var(--page-muted) !important; }
+.auth-form input, .demo-account-choices button { background: var(--page-surface-2) !important; border-color: var(--page-border) !important; color: var(--page-text) !important; }
+.auth-form button { background: var(--page-brand) !important; }
+.auth-form button:hover:not(:disabled) { background: #0789d2 !important; }
+.auth-step, .auth-story-copy h1 span, .auth-footer span, .text-button { color: var(--page-brand-hover) !important; }
+.demo-account-choices button:hover { border-color: var(--page-brand) !important; background: #213b5c !important; }
+
+:root[data-theme='dark'] .hybrid-dashboard,
+:root[data-theme='dark'] .hybrid-dashboard .main-content,
+:root[data-theme='dark'] .hybrid-dashboard .page-content { background: var(--page-bg) !important; }
+:root[data-theme='dark'] .hybrid-dashboard .nav-link { color: #aebbd0 !important; }
+:root[data-theme='dark'] .hybrid-dashboard .nav-link:hover,
+:root[data-theme='dark'] .hybrid-dashboard .nav-link.active { background: #23476f !important; color: #fff !important; }
+:root[data-theme='dark'] .hybrid-dashboard .sidebar { background: var(--page-sidebar) !important; }
+:root[data-theme='dark'] .auth-panel { background: #121f32 !important; }
+:root[data-theme='dark'] .auth-form input,
+:root[data-theme='dark'] .demo-account-choices button { background: #182a43 !important; }
+
+/* Light-mode sidebar contrast fixes. Preserve the light layout while keeping
+   navigation, branding, status, and profile text readable. */
+:root:not([data-theme='dark']) .hybrid-dashboard .brand-name { color: #1d2b42 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .brand-name span { color: #087fbe !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .workspace-label { color: #58bfa2 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .sidebar-bottom { border-color: #e1edf2 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .environment { color: #8aa0ad !important; border-color: #e1edf2 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-row { border-color: #e1edf2 !important; background: #fff !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-details strong { color: #40536e !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-details span { color: #8293a8 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .logout-button { border-color: #b7d5ce !important; background: #8ebcaf !important; color: #fff !important; }
+
+/* Shared sidebar treatment in both modes, matching the blue TransferGuard
+   workspace reference. The page content remains mode-specific. */
+.hybrid-dashboard .sidebar {
+  background: linear-gradient(145deg, #182a43 0%, #1d4b76 58%, #087fbe 100%) !important;
+  color: #edf7ff !important;
+}
+.hybrid-dashboard .brand-name,
+:root:not([data-theme='dark']) .hybrid-dashboard .brand-name { color: #f5fbff !important; }
+.hybrid-dashboard .brand-name span,
+:root:not([data-theme='dark']) .hybrid-dashboard .brand-name span { color: #18c69a !important; }
+.hybrid-dashboard .workspace-label { color: #a9d6e8 !important; }
+.hybrid-dashboard .side-nav .nav-link,
+:root:not([data-theme='dark']) .hybrid-dashboard .nav-link { color: #c5d9e9 !important; }
+.hybrid-dashboard .side-nav .nav-link:hover,
+.hybrid-dashboard .side-nav .nav-link.active,
+:root:not([data-theme='dark']) .hybrid-dashboard .side-nav .nav-link:hover,
+:root:not([data-theme='dark']) .hybrid-dashboard .side-nav .nav-link.active {
+  background: rgba(24,178,255,.22) !important;
+  color: #fff !important;
+}
+.hybrid-dashboard .side-nav .nav-link.active { box-shadow: inset 3px 0 0 #18b2ff !important; }
+.hybrid-dashboard .sidebar-bottom,
+:root:not([data-theme='dark']) .hybrid-dashboard .sidebar-bottom { border-color: rgba(213,238,255,.2) !important; }
+.hybrid-dashboard .environment,
+:root:not([data-theme='dark']) .hybrid-dashboard .environment { color: #b9d6e6 !important; border-color: rgba(213,238,255,.2) !important; }
+.hybrid-dashboard .profile-row,
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-row { border-color: rgba(213,238,255,.16) !important; background: rgba(255,255,255,.08) !important; }
+.hybrid-dashboard .profile-details strong,
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-details strong { color: #f5fbff !important; }
+.hybrid-dashboard .profile-details span,
+:root:not([data-theme='dark']) .hybrid-dashboard .profile-details span { color: #b9d6e6 !important; }
+.hybrid-dashboard .logout-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .logout-button { border-color: rgba(213,238,255,.3) !important; background: rgba(255,255,255,.16) !important; color: #fff !important; }
+
+/* Clean, single-accent user-management page. */
+.hybrid-dashboard .user-management {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 16px !important;
+  background: var(--page-surface) !important;
+  border-color: var(--page-border) !important;
+}
+.hybrid-dashboard .user-management-heading {
+  margin: 0 !important;
+  padding: 20px 24px !important;
+  background: var(--page-surface-2) !important;
+  border-bottom: 1px solid var(--page-border) !important;
+}
+.hybrid-dashboard .user-management-heading h2,
+.hybrid-dashboard .user-management-heading p,
+.hybrid-dashboard .user-management-heading .record-count { color: var(--page-text) !important; }
+.hybrid-dashboard .user-management-heading p,
+.hybrid-dashboard .user-management-heading .record-count { color: var(--page-muted) !important; }
+.hybrid-dashboard .user-management-grid { display: block !important; padding: 20px 24px 24px !important; }
+.hybrid-dashboard .user-add-trigger {
+  margin-bottom: 18px !important;
+  padding: 14px 16px !important;
+  border: 1px solid var(--page-border) !important;
+  border-radius: 11px !important;
+  background: var(--page-surface-2) !important;
+  color: var(--page-text) !important;
+  box-shadow: none !important;
+}
+.hybrid-dashboard .user-add-trigger:hover { border-color: var(--page-brand) !important; background: var(--page-surface-2) !important; transform: translateY(-1px); }
+.hybrid-dashboard .user-add-trigger .add-trigger-icon { background: var(--page-brand) !important; }
+.hybrid-dashboard .user-add-trigger strong { color: var(--page-text) !important; }
+.hybrid-dashboard .user-add-trigger small { color: var(--page-muted) !important; }
+.hybrid-dashboard .user-directory,
+.hybrid-dashboard .role-access { border: 1px solid var(--page-border) !important; border-radius: 11px !important; background: var(--page-surface) !important; }
+.hybrid-dashboard .user-directory-heading,
+.hybrid-dashboard .role-access .user-directory-heading {
+  padding: 15px 18px !important;
+  background: var(--page-surface-2) !important;
+  border-bottom: 1px solid var(--page-border) !important;
+}
+.hybrid-dashboard .user-directory-heading strong { color: var(--page-text) !important; }
+.hybrid-dashboard .user-directory-heading > span { color: var(--page-muted) !important; }
+.hybrid-dashboard .user-directory-controls { padding: 12px 18px !important; background: var(--page-surface) !important; border-bottom: 1px solid var(--page-border) !important; }
+.hybrid-dashboard .user-row { padding: 13px 18px !important; border-bottom: 1px solid var(--page-border) !important; }
+.hybrid-dashboard .user-row:hover { background: var(--page-surface-2) !important; }
+.hybrid-dashboard .user-identity strong { color: var(--page-text) !important; }
+.hybrid-dashboard .user-identity > span:not(.user-role-label) { color: var(--page-muted) !important; }
+.hybrid-dashboard .user-role-label { background: rgba(7,157,240,.12) !important; color: #087fbe !important; }
+.hybrid-dashboard .user-state-button { background: rgba(7,157,240,.12) !important; color: #087fbe !important; }
+.hybrid-dashboard .user-state-button.is-inactive { background: rgba(113,128,150,.14) !important; color: var(--page-muted) !important; }
+.hybrid-dashboard .role-access { margin: 0 24px 24px !important; overflow: hidden; }
+.hybrid-dashboard .role-access-table th { background: var(--page-surface-2) !important; color: var(--page-muted) !important; border-color: var(--page-border) !important; }
+.hybrid-dashboard .role-access-table td { background: var(--page-surface) !important; color: var(--page-muted) !important; border-color: var(--page-border) !important; }
+.hybrid-dashboard .role-access-table td:first-child { color: var(--page-text) !important; }
+.hybrid-dashboard .user-management-footnote { margin: 0 24px 24px !important; color: var(--page-muted) !important; }
+.hybrid-dashboard .user-feedback-error { border: 0 !important; border-radius: 0 !important; background: rgba(180,70,70,.16) !important; color: #d89191 !important; }
+
+/* Light-mode account modal: readable fields instead of dark inherited fills. */
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal {
+  background: #fff !important;
+  color: #1d2b42 !important;
+  border-color: #dfe7f1 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal-form label,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal label,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal label { color: #52647d !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal input,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal select,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal input,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal select,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal input {
+  background: #f7faff !important;
+  border-color: #d5e0ec !important;
+  color: #1d2b42 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal input:focus,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal select:focus,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal input:focus,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal select:focus,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal input:focus {
+  border-color: var(--page-brand) !important;
+  box-shadow: 0 0 0 3px rgba(7,157,240,.14) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal .modal-close-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-close-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-close-button {
+  background: #eaf3fb !important;
+  color: #52647d !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-create-modal .modal-cancel-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-cancel-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-cancel-button {
+  background: #eef4fa !important;
+  border-color: #d5e0ec !important;
+  color: #52647d !important;
+}
+
+/* Light-mode directory filters and search field. */
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls .user-search,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls input,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls select {
+  background: #f7faff !important;
+  border-color: #d5e0ec !important;
+  color: #1d2b42 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls input::placeholder { color: #8a9bb0 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-directory-controls .user-search span { color: #718096 !important; }
+
+/* Equal-size modal actions for a cleaner form footer. */
+.hybrid-dashboard .user-create-modal .user-edit-modal-actions,
+.hybrid-dashboard .user-edit-modal .user-edit-modal-actions,
+.hybrid-dashboard .user-reset-modal .user-edit-modal-actions {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.hybrid-dashboard .user-create-modal .user-edit-modal-actions > button,
+.hybrid-dashboard .user-edit-modal .user-edit-modal-actions > button,
+.hybrid-dashboard .user-reset-modal .user-edit-modal-actions > button {
+  width: 140px !important;
+  min-width: 140px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border-radius: 9px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Search control uses one shared focus ring instead of nested borders. */
+.hybrid-dashboard .user-directory-controls .user-search {
+  border: 1px solid var(--page-border) !important;
+  box-shadow: none !important;
+}
+.hybrid-dashboard .user-directory-controls .user-search:focus-within {
+  border-color: var(--page-brand) !important;
+  box-shadow: 0 0 0 3px rgba(7,157,240,.12) !important;
+}
+.hybrid-dashboard .user-directory-controls .user-search input,
+.hybrid-dashboard .user-directory-controls .user-search input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Light-mode transaction assessment modal. */
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal {
+  background: #fff !important;
+  color: #1d2b42 !important;
+  border-color: #dfe7f1 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal label,
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal .checkbox-label {
+  color: #52647d !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal input:not([type='checkbox']),
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal select {
+  background: #f7faff !important;
+  border-color: #d5e0ec !important;
+  color: #1d2b42 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal input:not([type='checkbox']):focus,
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal select:focus {
+  border-color: var(--page-brand) !important;
+  box-shadow: 0 0 0 3px rgba(7,157,240,.14) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal .modal-close-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .assessment-modal .modal-cancel-button {
+  background: #eef4fa !important;
+  border-color: #d5e0ec !important;
+  color: #52647d !important;
+}
+
+/* Keep directory rows aligned in light mode. */
+.hybrid-dashboard .user-row {
+  grid-template-columns: 38px minmax(240px, 1fr) minmax(480px, auto) !important;
+  align-items: center !important;
+}
+.hybrid-dashboard .user-row-tools {
+  display: flex !important;
+  min-width: 0;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools select,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools select:disabled {
+  min-width: 145px !important;
+  background: #f7faff !important;
+  border: 1px solid #d5e0ec !important;
+  color: #52647d !important;
+  opacity: 1 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools select:focus {
+  border-color: var(--page-brand) !important;
+  box-shadow: 0 0 0 3px rgba(7,157,240,.12) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools .user-reset-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools .user-edit-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools .user-delete-button {
+  flex: 0 0 auto;
+  color: #718096 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools .user-reset-button {
+  border-color: #d5e0ec !important;
+  background: #f7faff !important;
+}
+@media (max-width: 980px) {
+  .hybrid-dashboard .user-row { grid-template-columns: 38px minmax(180px, 1fr) minmax(330px, auto) !important; }
+  .hybrid-dashboard .user-row-tools { gap: 5px !important; }
+  :root:not([data-theme='dark']) .hybrid-dashboard .user-row-tools select { min-width: 110px !important; }
+}
+@media (max-width: 700px) {
+  .hybrid-dashboard .user-row { grid-template-columns: 38px minmax(0, 1fr) !important; }
+  .hybrid-dashboard .user-row-tools { grid-column: 2; justify-content: flex-start !important; flex-wrap: wrap !important; }
+}
+
+/* Analyst feedback and model retraining queue card. */
+.hybrid-dashboard .retraining-card {
+  margin: 0 0 16px;
+  padding: 22px 24px !important;
+}
+.hybrid-dashboard .retraining-card-header,
+.hybrid-dashboard .retraining-progress-row,
+.hybrid-dashboard .retraining-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.hybrid-dashboard .retraining-kicker { color: var(--page-brand) !important; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; }
+.hybrid-dashboard .retraining-card h2 { margin: 6px 0 5px; color: var(--page-text) !important; font-size: 16px; }
+.hybrid-dashboard .retraining-card p { margin: 0; color: var(--page-muted) !important; font-size: 11px; }
+.hybrid-dashboard .retraining-status { padding: 8px 11px; border: 1px solid var(--page-border); border-radius: 999px; color: var(--page-muted); background: var(--page-surface-2); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.hybrid-dashboard .retraining-status.is-ready { border-color: rgba(31,157,101,.32); color: #168456; background: rgba(31,157,101,.1); }
+.hybrid-dashboard .retraining-progress-row { margin-top: 20px; }
+.hybrid-dashboard .retraining-progress-track { flex: 1; height: 9px; overflow: hidden; border-radius: 999px; background: var(--page-surface-2); }
+.hybrid-dashboard .retraining-progress-track span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: var(--page-brand); transition: width .3s ease, background .3s ease; }
+.hybrid-dashboard .retraining-progress-track span.is-ready { background: #1f9d65; }
+.hybrid-dashboard .retraining-progress-row strong { min-width: 155px; color: var(--page-text); font-size: 11px; text-align: right; }
+.hybrid-dashboard .retraining-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+.hybrid-dashboard .retraining-metrics > div { display: grid; gap: 5px; padding: 12px 14px; border: 1px solid var(--page-border); border-radius: 10px; background: var(--page-surface-2); }
+.hybrid-dashboard .retraining-metrics span { color: var(--page-muted); font-size: 10px; font-weight: 700; }
+.hybrid-dashboard .retraining-metrics strong { color: var(--page-text); font-size: 20px; line-height: 1; }
+.hybrid-dashboard .retraining-metrics small { color: var(--page-muted); font-size: 9px; }
+.hybrid-dashboard .retraining-empty { margin-top: 16px !important; padding: 12px 14px; border: 1px dashed var(--page-border); border-radius: 9px; background: var(--page-surface-2); }
+.hybrid-dashboard .retraining-notice { margin-top: 14px !important; color: #168456 !important; font-size: 10px !important; font-weight: 700; }
+.hybrid-dashboard .retraining-actions { justify-content: flex-start; margin-top: 18px; }
+.hybrid-dashboard .retraining-trigger { min-height: 38px; padding: 0 15px; border: 0; border-radius: 8px; background: var(--page-brand); color: #fff; font-size: 10px; font-weight: 800; cursor: pointer; transition: background .2s ease, opacity .2s ease; }
+.hybrid-dashboard .retraining-trigger:hover:not(:disabled) { background: #0789d2; }
+.hybrid-dashboard .retraining-trigger:disabled { cursor: not-allowed; opacity: .45; }
+.hybrid-dashboard .retraining-actions > span { color: var(--page-muted); font-size: 9px; }
+@media (max-width: 700px) {
+  .hybrid-dashboard .retraining-card-header { align-items: flex-start; flex-direction: column; }
+  .hybrid-dashboard .retraining-progress-row { align-items: stretch; flex-direction: column; gap: 8px; }
+  .hybrid-dashboard .retraining-progress-row strong { text-align: left; }
+  .hybrid-dashboard .retraining-metrics { grid-template-columns: 1fr; }
+  .hybrid-dashboard .retraining-actions { align-items: flex-start; flex-direction: column; }
+}
+
+/* Delete confirmation dialog. */
+.delete-confirmation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 26, 46, .54);
+  backdrop-filter: blur(6px);
+  animation: modalFadeIn .16s ease-out;
+}
+.delete-confirmation-modal {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 5px 14px;
+  width: min(430px, 100%);
+  padding: 22px;
+  border: 1px solid var(--page-border);
+  border-radius: 14px;
+  background: var(--page-surface);
+  color: var(--page-text);
+  box-shadow: 0 24px 70px rgba(7, 24, 48, .24);
+  animation: modalSlideIn .18s ease-out;
+}
+.delete-confirmation-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: rgba(204, 86, 86, .12); color: #bf5b5b; font-size: 18px; font-weight: 800; }
+.delete-confirmation-modal h2 { margin: 2px 0 6px; color: var(--page-text); font-size: 16px; }
+.delete-confirmation-modal p { margin: 0; color: var(--page-muted); font-size: 11px; line-height: 1.55; }
+.delete-confirmation-modal p strong { color: var(--page-text); }
+.delete-confirmation-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.delete-confirmation-actions button { width: 116px; height: 38px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; }
+.delete-confirmation-actions .modal-cancel-button { border: 1px solid var(--page-border); background: var(--page-surface-2); color: var(--page-muted); }
+.delete-confirmation-actions .delete-confirm-button { border: 0; background: #bf5b5b; color: #fff; }
+.delete-confirmation-actions .delete-confirm-button:hover { background: #aa4c4c; }
+
+/* Reset and activation dialogs share the same clean modal language. */
+.hybrid-dashboard .user-reset-modal-backdrop,
+.hybrid-dashboard .delete-confirmation-backdrop { background: rgba(12, 26, 46, .54) !important; backdrop-filter: blur(6px); }
+.hybrid-dashboard .user-reset-modal {
+  display: grid; gap: 15px; width: min(430px, 100%) !important; padding: 24px !important;
+  border: 1px solid var(--page-border) !important; border-radius: 14px !important;
+  background: var(--page-surface) !important; color: var(--page-text) !important;
+  box-shadow: 0 24px 70px rgba(7, 24, 48, .24) !important;
+}
+.hybrid-dashboard .user-reset-modal .user-edit-modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hybrid-dashboard .user-reset-modal .user-edit-modal-heading strong { color: var(--page-text) !important; font-size: 17px; }
+.hybrid-dashboard .user-reset-modal p { margin: 0 !important; color: var(--page-muted) !important; font-size: 11px !important; line-height: 1.5; }
+.hybrid-dashboard .user-reset-modal input { height: 42px; padding: 0 12px !important; border-radius: 9px !important; }
+.hybrid-dashboard .user-reset-modal .modal-update-button { border: 0; background: var(--page-brand) !important; color: #fff !important; }
+.hybrid-dashboard .user-reset-modal .modal-update-button:hover { background: #0789d2 !important; }
+.hybrid-dashboard .user-reset-modal .modal-close-button { width: 36px; height: 36px; border-radius: 9px; }
+.status-confirmation-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: rgba(7,157,240,.12); color: var(--page-brand); font-size: 18px; font-weight: 800; }
+.status-confirm-button { border: 0; background: var(--page-brand); color: #fff; }
+.status-confirm-button:hover { background: #0789d2; }
+
+/* Reset popup reference treatment: calm white surface with muted teal action. */
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal-backdrop {
+  background: rgba(43, 61, 67, .58) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal {
+  width: min(484px, calc(100% - 32px)) !important;
+  gap: 16px;
+  padding: 26px 28px !important;
+  border: 1px solid #dce8eb !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 22px 55px rgba(26, 56, 62, .2) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .user-edit-modal-heading strong { color: #29413f !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal p { color: #8aa0b8 !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal input {
+  height: 52px;
+  border: 2px solid #172b44 !important;
+  border-radius: 11px !important;
+  background: #f7faff !important;
+  color: #2d3949 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal input:focus {
+  border-color: #18a7ee !important;
+  box-shadow: 0 0 0 3px rgba(24,167,238,.15) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-close-button {
+  background: #edf4fb !important;
+  color: #60758b !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-cancel-button,
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-update-button {
+  width: 158px !important;
+  min-width: 158px !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  border-radius: 9px !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-cancel-button {
+  border: 1px solid #d3e1ef !important;
+  background: #edf4fb !important;
+  color: #60758b !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-update-button {
+  background: var(--page-brand) !important;
+  color: #fff !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-reset-modal .modal-update-button:hover { background: #0789d2 !important; }
+
+/* Edit-account popup reference treatment. */
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal-backdrop {
+  background: rgba(73, 91, 103, .52) !important;
+  backdrop-filter: blur(5px);
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal {
+  display: grid;
+  gap: 14px;
+  width: min(440px, calc(100% - 32px)) !important;
+  padding: 24px !important;
+  border: 1px solid #dce8eb !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #29413f !important;
+  box-shadow: 0 22px 55px rgba(26, 56, 62, .2) !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .user-edit-modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .user-edit-modal-heading strong { color: #29413f !important; font-size: 17px; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal label { display: grid; gap: 7px; color: #60758b !important; font-size: 11px; font-weight: 700; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal input {
+  height: 42px;
+  border: 1px solid #d3e1ef !important;
+  border-radius: 9px !important;
+  background: #f7faff !important;
+  color: #293b54 !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal input:focus { border-color: #18a7ee !important; box-shadow: 0 0 0 3px rgba(24,167,238,.15) !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-close-button { background: #edf4fb !important; color: #60758b !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .user-edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 3px; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .user-edit-modal-actions > button {
+  width: 158px !important;
+  min-width: 158px !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  border-radius: 9px !important;
+}
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-cancel-button { border: 1px solid #d3e1ef !important; background: #edf4fb !important; color: #60758b !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-update-button { border: 0; background: var(--page-brand) !important; color: #fff !important; }
+:root:not([data-theme='dark']) .hybrid-dashboard .user-edit-modal .modal-update-button:hover { background: #0789d2 !important; }
+
+/* Dark-mode popup palette: use the application's navy surfaces and blue action. */
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal {
+  background: var(--page-surface) !important;
+  border-color: var(--page-border) !important;
+  color: var(--page-text) !important;
+}
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal .user-edit-modal-heading strong,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal .user-edit-modal-heading strong { color: var(--page-text) !important; }
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal label { color: #c5d1e0 !important; }
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal input,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal input {
+  border-color: var(--page-border) !important;
+  background: var(--page-surface-2) !important;
+  color: var(--page-text) !important;
+}
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal input:focus,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal input:focus {
+  border-color: var(--page-brand) !important;
+  box-shadow: 0 0 0 3px rgba(7,157,240,.16) !important;
+}
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal .modal-close-button,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal .modal-close-button,
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal .modal-cancel-button,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal .modal-cancel-button {
+  border-color: var(--page-border) !important;
+  background: var(--page-surface-2) !important;
+  color: var(--page-muted) !important;
+}
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal .modal-update-button,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal .modal-update-button {
+  border: 0 !important;
+  background: var(--page-brand) !important;
+  color: #fff !important;
+}
+:root[data-theme='dark'] .hybrid-dashboard .user-edit-modal .modal-update-button:hover,
+:root[data-theme='dark'] .hybrid-dashboard .user-reset-modal .modal-update-button:hover { background: #0789d2 !important; }
+
+/* Keep the login page focused on role selection instead of exposing demo credentials. */
+.demo-quick-label { margin-top: 18px; color: var(--page-muted); font-size: 11px; font-weight: 800; letter-spacing: .25px; }
+.demo-account-choices { gap: 10px !important; margin-top: 9px !important; }
+.demo-account-choices button { min-height: 62px !important; padding: 12px 13px !important; border: 1px solid var(--page-border) !important; border-radius: 9px !important; background: var(--page-surface-2) !important; color: var(--page-text) !important; text-align: left; }
+.demo-account-choices button:hover { border-color: var(--page-brand) !important; background: rgba(7,157,240,.08) !important; }
+.demo-account-choices button span { margin-top: 5px; color: var(--page-muted) !important; font-size: 10px; }
+.demo-password { display: none !important; }
+:root[data-theme='dark'] .demo-account-choices button:hover { background: rgba(7,157,240,.14) !important; }
+
+/* Readable dashboard type scale. */
+.hybrid-dashboard .workspace-label { font-size: 10px !important; }
+.hybrid-dashboard .side-nav .nav-link { font-size: 13px !important; }
+.hybrid-dashboard .environment { font-size: 11px !important; }
+.hybrid-dashboard .profile-details strong { font-size: 12px !important; }
+.hybrid-dashboard .profile-details span { font-size: 11px !important; }
+.hybrid-dashboard .dashboard-toolbar { font-size: 12px !important; }
+.hybrid-dashboard .dashboard-toolbar button { font-size: 11px !important; }
+.hybrid-dashboard .page-heading .eyebrow { font-size: 11px !important; }
+.hybrid-dashboard .page-heading h1 { font-size: clamp(32px, 3vw, 44px) !important; }
+.hybrid-dashboard .page-heading p { font-size: 14px !important; }
+.hybrid-dashboard .metric-top { font-size: 12px !important; }
+.hybrid-dashboard .metric-value { font-size: 30px !important; }
+.hybrid-dashboard .metric-foot { font-size: 11px !important; }
+.hybrid-dashboard .panel-heading h2 { font-size: 17px !important; }
+.hybrid-dashboard .panel-heading p { font-size: 12px !important; }
+.hybrid-dashboard .outline-action,
+.hybrid-dashboard .submit-button,
+.hybrid-dashboard .user-add-button { font-size: 12px !important; }
+.hybrid-dashboard .user-management-heading h2 { font-size: 17px !important; }
+.hybrid-dashboard .user-management-heading p { font-size: 12px !important; }
+.hybrid-dashboard .user-form-heading strong,
+.hybrid-dashboard .user-directory-heading strong { font-size: 14px !important; }
+.hybrid-dashboard .user-directory-heading > span { font-size: 11px !important; }
+.hybrid-dashboard .user-directory-controls input,
+.hybrid-dashboard .user-directory-controls select { font-size: 12px !important; }
+.hybrid-dashboard .user-identity strong { font-size: 13px !important; }
+.hybrid-dashboard .user-identity > span { font-size: 11px !important; }
+.hybrid-dashboard .user-role-label,
+.hybrid-dashboard .user-state-button,
+.hybrid-dashboard .user-row-tools select { font-size: 11px !important; }
+.hybrid-dashboard .user-management-footnote { font-size: 10px !important; }
+.hybrid-dashboard .retraining-card h2 { font-size: 18px !important; }
+.hybrid-dashboard .retraining-card p { font-size: 12px !important; }
+.hybrid-dashboard .retraining-metrics span { font-size: 11px !important; }
+.hybrid-dashboard .retraining-metrics small { font-size: 10px !important; }
+.hybrid-dashboard .activity-panel table th { font-size: 10px !important; }
+.hybrid-dashboard .activity-panel table td { font-size: 12px !important; }
+.hybrid-dashboard .user-reset-modal,
+.hybrid-dashboard .user-edit-modal,
+.hybrid-dashboard .user-create-modal { font-size: 13px !important; }

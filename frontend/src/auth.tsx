@@ -5,9 +5,9 @@ export type SessionUser = {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'analyst' | 'customer' | 'compliance';
+  role: 'admin' | 'analyst' | 'customer' | 'compliance' | 'super_admin' | 'user';
   active: boolean;
-  created_at: number;
+  created_at: string | number;
 };
 
 export const DEMO_PASSWORD = 'transfer-demo-2026';
@@ -18,8 +18,26 @@ export const DEMO_USERS: SessionUser[] = [
   { id: 3, name: 'Cardholder Demo', email: 'customer@transferguard.demo', role: 'customer', active: true, created_at: 1761868800 },
   { id: 4, name: 'Compliance Officer', email: 'compliance@transferguard.demo', role: 'compliance', active: true, created_at: 1761955200 },];
 export function roleLabel(role: SessionUser['role'], language: Language): string {
-  if (language === 'km') return ({ admin: 'អ្នកគ្រប់គ្រងហានិភ័យ', analyst: 'អ្នកវិភាគក្លែងបន្លំ', customer: 'អតិថិជន', compliance: 'មន្ត្រីអនុលោមភាព' })[role];
-  return ({ admin: 'Risk Manager / Admin', analyst: 'Fraud Analyst', customer: 'Cardholder / Customer', compliance: 'Compliance Officer' })[role];
+  const normalized = role === 'super_admin' ? 'admin' : role === 'user' ? 'analyst' : role;
+  if (language === 'km') return ({ admin: 'អ្នកគ្រប់គ្រងហានិភ័យ', analyst: 'អ្នកវិភាគក្លែងបន្លំ', customer: 'អតិថិជន', compliance: 'មន្ត្រីអនុលោមភាព' })[normalized];
+  return ({ admin: 'Risk Manager / Admin', analyst: 'Fraud Analyst', customer: 'Cardholder / Customer', compliance: 'Compliance Officer' })[normalized];
+}
+
+export const AUTH_API_URL = 'http://localhost:8001';
+type ApiRole = 'super_admin' | 'admin' | 'user';
+type ApiUser = { id: number; name: string; email: string; role: ApiRole; is_active: boolean; created_at: string; updated_at: string; last_login_at?: string | null };
+
+export function toSessionUser(user: ApiUser): SessionUser {
+  return { ...user, active: user.is_active, role: user.role === 'super_admin' ? 'super_admin' : user.role === 'admin' ? 'admin' : 'user' };
+}
+
+export function toApiRole(role: SessionUser['role']): ApiRole {
+  return role === 'super_admin' ? 'super_admin' : role === 'admin' ? 'admin' : 'user';
+}
+
+export async function apiError(response: Response, fallback: string): Promise<Error> {
+  const data = await response.json().catch(() => ({}));
+  return new Error(data.detail ?? data.error ?? fallback);
 }
 
 export function authenticateDemo(email: string, password: string, invalidMessage: string): SessionUser {
@@ -35,8 +53,8 @@ type AuthScreenProps = {
 
 export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
   const t = getMessages(language);
-  const [email, setEmail] = useState(DEMO_USERS[0].email);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -59,18 +77,18 @@ export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
 
   async function requestReset() {
     setError(''); setResetNotice('');
-    const response = await fetch('http://localhost:5000/api/v1/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const response = await fetch(`${AUTH_API_URL}/api/v1/auth/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
     const data = await response.json();
-    if (!response.ok) { setError(data.error ?? 'Unable to start password reset'); return; }
-    if (data.reset_token) setResetToken(data.reset_token);
-    setResetNotice(data.reset_token ? 'Development reset token generated. Enter a new password below.' : 'If the account exists, reset instructions were created.');
+    if (!response.ok) { setError(data.detail ?? data.error ?? 'Unable to start password reset'); return; }
+    if (data.development_reset_token) setResetToken(data.development_reset_token);
+    setResetNotice(data.development_reset_token ? 'Development reset token generated. Enter a new password below.' : 'If the account exists, reset instructions were created.');
   }
 
   async function submitReset(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('');
-    const response = await fetch('http://localhost:5000/api/v1/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: resetToken, password: resetPassword }) });
+    const response = await fetch(`${AUTH_API_URL}/api/v1/auth/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: resetToken, password: resetPassword }) });
     const data = await response.json();
-    if (!response.ok) { setError(data.error ?? 'Unable to reset password'); return; }
+    if (!response.ok) { setError(data.detail ?? data.error ?? 'Unable to reset password'); return; }
     setResetNotice('Password reset complete. You can sign in with the new password.'); setResetOpen(false); setResetPassword('');
   }
 
@@ -100,15 +118,8 @@ export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? t.openingWorkspace : t.enterDemo}<span aria-hidden="true">↗</span></button>
           </form>
-<div className="password-reset-entry"><button type="button" className="text-button" onClick={() => { setResetOpen(!resetOpen); setError('); setResetNotice('); }}>Forgot password?</button>{resetOpen && <form className="password-reset-form" onSubmit={submitReset}><input type="email" placeholder="Account email" value={email} onChange={(event) => setEmail(event.target.value)} required /><button type="button" onClick={() => void requestReset()}>Generate reset token</button>{resetToken && <input type="text" placeholder="Reset token" value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />}<input type="password" placeholder="New password (12+ characters)" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} minLength={12} required /><button type="submit">Reset password</button>{resetNotice && <small>{resetNotice}</small>}</form>}</div>
-          <div className="demo-account-choices">
-            <button type="button" onClick={() => { setEmail(DEMO_USERS[0].email); setPassword(DEMO_PASSWORD); }}>{t.adminDemo}<span>admin@transferguard.demo</span></button>
-            <button type="button" onClick={() => { setEmail(DEMO_USERS[1].email); setPassword(DEMO_PASSWORD); }}>{t.researcherDemo}<span>analyst@transferguard.demo</span></button>
-            <button type="button" onClick={() => { setEmail(DEMO_USERS[2].email); setPassword(DEMO_PASSWORD); }}>Customer demo<span>customer@transferguard.demo</span></button>
-            <button type="button" onClick={() => { setEmail(DEMO_USERS[3].email); setPassword(DEMO_PASSWORD); }}>Compliance demo<span>compliance@transferguard.demo</span></button>
-          </div>
-          <div className="demo-password">{t.samplePassword} <code>{DEMO_PASSWORD}</code></div>
-          <div className="auth-security-note"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg><span>{t.demoOnlyNotice}</span></div>
+<div className="password-reset-entry"><button type="button" className="text-button" onClick={() => { setResetOpen(!resetOpen); setError(''); setResetNotice(''); }}>Forgot password?</button>{resetOpen && <form className="password-reset-form" onSubmit={submitReset}><input type="email" placeholder="Account email" value={email} onChange={(event) => setEmail(event.target.value)} required /><button type="button" onClick={() => void requestReset()}>Generate reset token</button>{resetToken && <input type="text" placeholder="Reset token" value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />}<input type="password" placeholder="New password (12+ characters)" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} minLength={12} required /><button type="submit">Reset password</button>{resetNotice && <small>{resetNotice}</small>}</form>}</div>
+          
         </div>
         <footer className="auth-footer">TransferGuard <span>·</span> {t.researchPrototype}</footer>
       </section>
@@ -123,9 +134,17 @@ type UserManagementProps = {
 
 export function UserManagement({ currentUser, language, token }: UserManagementProps & { language: Language }) {
   const t = getMessages(language);
-  const [users, setUsers] = useState<SessionUser[]>([]);
+  const [users, setUsers] = useState<SessionUser[]>(() => DEMO_USERS.map((user) => ({ ...user })));
   const authHeaders = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
-  useEffect(() => { fetch('http://localhost:5000/api/v1/users', { headers: authHeaders }).then(async (response) => { if (!response.ok) throw new Error((await response.json()).error ?? 'Unable to load users'); return response.json(); }).then(setUsers).catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load users')); }, [token]);
+  async function loadUsers() {
+    const response = await fetch(`${AUTH_API_URL}/api/v1/users?skip=0&limit=200`, { headers: authHeaders });
+    if (!response.ok) throw await apiError(response, 'Unable to load users');
+    const data = await response.json() as { items: ApiUser[] };
+    setUsers(data.items.map(toSessionUser));
+  }
+  useEffect(() => {
+    void loadUsers().catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load users'));
+  }, [token]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -133,6 +152,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ userId: number; nextActive: boolean } | null>(null);
   const [resetUserId, setResetUserId] = useState<number | null>(null);
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
@@ -143,21 +163,15 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
   const [roleFilter, setRoleFilter] = useState<'all' | SessionUser['role']>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
-  function createAccount(event: React.FormEvent<HTMLFormElement>) {
+  async function createAccount(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setNotice('');
     try {
       if (password.length < 12) throw new Error(t.passwordTooShort);
-      if (users.some((user) => user.email === email.trim().toLowerCase())) throw new Error(t.duplicateEmail);
-      const created: SessionUser = {
-        id: Math.max(...users.map((user) => user.id), 0) + 1,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        role,
-        active: true,
-        created_at: Math.floor(Date.now() / 1000),
-      };
+      const response = await fetch(`${AUTH_API_URL}/api/v1/users`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role: toApiRole(role) }) });
+      if (!response.ok) throw await apiError(response, 'Unable to create user');
+      const created = toSessionUser((await response.json() as { user: ApiUser }).user);
       setUsers((current) => [...current, created]);
       setName('');
       setEmail('');
@@ -170,7 +184,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
     }
   }
 
-  function updateAccount(userId: number, patch: { role?: SessionUser['role']; active?: boolean }) {
+  async function updateAccount(userId: number, patch: { role?: SessionUser['role']; active?: boolean }) {
     setError('');
     setNotice('');
     try {
@@ -179,11 +193,9 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       const nextRole = patch.role ?? target.role;
       const nextActive = patch.active ?? target.active;
       if (userId === currentUser.id && !nextActive) throw new Error(t.noSelfDeactivate);
-      if (target.role === 'admin' && target.active && (nextRole !== 'admin' || !nextActive)
-        && users.filter((user) => user.role === 'admin' && user.active).length <= 1) {
-        throw new Error(t.lastAdmin);
-      }
-      const updated = { ...target, ...patch };
+      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ role: toApiRole(nextRole), is_active: nextActive }) });
+      if (!response.ok) throw await apiError(response, 'Unable to update user');
+      const updated = toSessionUser((await response.json() as { user: ApiUser }).user);
       setUsers((current) => current.map((user) => user.id === userId ? updated : user));
       setNotice(`${t.accountUpdated} ${updated.name}.`);
     } catch (caught) {
@@ -205,15 +217,11 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
     setEditEmail('');
   }
 
-  function saveEdit(userId: number) {
+  async function saveEdit(userId: number) {
     const nextName = editName.trim();
     const nextEmail = editEmail.trim().toLowerCase();
     if (!nextName || !nextEmail) {
       setError('Full name and email address are required.');
-      return;
-    }
-    if (users.some((user) => user.id !== userId && user.email === nextEmail)) {
-      setError(t.duplicateEmail);
       return;
     }
     const updated = users.find((user) => user.id === userId);
@@ -221,15 +229,22 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       setError(t.accountNotFound);
       return;
     }
-    setUsers((current) => current.map((user) => user.id === userId ? { ...user, name: nextName, email: nextEmail } : user));
-    setEditingUserId(null);
-    setEditName('');
-    setEditEmail('');
-    setNotice(`${t.accountUpdated} ${nextName}.`);
-    setError('');
+    try {
+      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ name: nextName, email: nextEmail }) });
+      if (!response.ok) throw await apiError(response, 'Unable to update user');
+      const updatedUser = toSessionUser((await response.json() as { user: ApiUser }).user);
+      setUsers((current) => current.map((user) => user.id === userId ? updatedUser : user));
+      setEditingUserId(null);
+      setEditName('');
+      setEditEmail('');
+      setNotice(`${t.accountUpdated} ${nextName}.`);
+      setError('');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    }
   }
 
-  function deleteAccount(userId: number) {
+  async function deleteAccount(userId: number) {
     setError('');
     setNotice('');
     const target = users.find((user) => user.id === userId);
@@ -238,19 +253,26 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       setError(t.noSelfDelete);
       return;
     }
-    if (target.role === 'admin' && target.active
-      && users.filter((user) => user.role === 'admin' && user.active).length <= 1) {
-      setError(t.lastAdmin);
-      return;
+    try {
+      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'DELETE', headers: authHeaders });
+      if (response.status === 404) {
+        await loadUsers();
+        setPendingDeleteId(null);
+        setNotice('That user no longer exists. The directory was refreshed.');
+        return;
+      }
+      if (!response.ok) throw await apiError(response, 'Unable to delete user');
+      setUsers((current) => current.filter((user) => user.id !== userId));
+      setPendingDeleteId(null);
+      setNotice(`${t.accountDeleted} ${target.name}.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     }
-    setUsers((current) => current.filter((user) => user.id !== userId));
-    setPendingDeleteId(null);
-    setNotice(`${t.accountDeleted} ${target.name}.`);
   }
 
   async function resetAccountPassword() {
     if (!resetUserId) return;
-    try { const response = await fetch('http://localhost:5000/api/v1/users/' + resetUserId + '/reset-password', { method: 'POST', headers: authHeaders, body: JSON.stringify({ password: resetNewPassword }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setResetUserId(null); setResetNewPassword(''); setNotice('Password updated successfully.'); } catch (caught) { setError(caught instanceof Error ? caught.message : String(caught)); }
+    try { const response = await fetch(`${AUTH_API_URL}/api/v1/users/${resetUserId}/reset-password`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ password: resetNewPassword }) }); if (!response.ok) throw await apiError(response, 'Unable to reset password'); setResetUserId(null); setResetNewPassword(''); setNotice('Password updated successfully.'); } catch (caught) { setError(caught instanceof Error ? caught.message : String(caught)); }
   }
 
   const filteredUsers = useMemo(() => {
@@ -262,25 +284,10 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       return matchesQuery && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, roleFilter, statusFilter]);
+  const pendingDeleteUser = users.find((user) => user.id === pendingDeleteId);
+  const pendingStatusUser = pendingStatusChange ? users.find((user) => user.id === pendingStatusChange.userId) : undefined;
 
   const editingUser = users.find((user) => user.id === editingUserId);
-
-  async function requestReset() {
-    setError(''); setResetNotice('');
-    const response = await fetch('http://localhost:5000/api/v1/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-    const data = await response.json();
-    if (!response.ok) { setError(data.error ?? 'Unable to start password reset'); return; }
-    if (data.reset_token) setResetToken(data.reset_token);
-    setResetNotice(data.reset_token ? 'Development reset token generated. Enter a new password below.' : 'If the account exists, reset instructions were created.');
-  }
-
-  async function submitReset(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError('');
-    const response = await fetch('http://localhost:5000/api/v1/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: resetToken, password: resetPassword }) });
-    const data = await response.json();
-    if (!response.ok) { setError(data.error ?? 'Unable to reset password'); return; }
-    setResetNotice('Password reset complete. You can sign in with the new password.'); setResetOpen(false); setResetPassword('');
-  }
 
   return (
     <section className="panel user-management" id="user-management">
@@ -292,7 +299,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
         <button type="button" className="user-add-trigger" onClick={() => setCreateOpen(true)}><span className="add-trigger-icon">+</span><span><strong>{t.createAccount}</strong><small>{t.addDemoAccount}</small></span></button>
 
         <div className="user-directory">
-          <div className="user-directory-heading"><div className="directory-title"><strong>{t.workspaceDirectory}</strong><span className="directory-edit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></span></div><span>{users.length} {t.account}</span></div>          <div className="user-directory-controls"><label className="user-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search users..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><select aria-label="Filter by role" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}><option value="all">All roles</option><option value="admin">Risk Manager / Admin</option><option value="analyst">Fraud Analyst</option><option value="customer">Cardholder / Customer</option><option value="compliance">Compliance Officer</option></select><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+          <div className="user-directory-heading"><div className="directory-title"><strong>{t.workspaceDirectory}</strong><span className="directory-edit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></span></div><span>{users.length} {t.account}</span></div>          <div className="user-directory-controls"><label className="user-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search users..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><select aria-label="Filter by role" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}><option value="all">All roles</option><option value="super_admin">Super Admin</option><option value="admin">Risk Manager / Admin</option><option value="user">Standard User</option></select><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
           {error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}
           {notice && <div className="user-feedback" role="status">{notice}</div>}
           {filteredUsers.length === 0 ? <div className="user-empty">{users.length === 0 ? t.noDemoAccounts : "No matching users found."}</div> : (
@@ -303,22 +310,16 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
                   <div className="user-identity"><strong>{user.name}{user.id === currentUser.id ? <span className="you-tag">{t.you}</span> : null}</strong><span className="user-role-label">{roleLabel(user.role, language)}</span><span>{user.email}</span></div>
                   <div className="user-row-tools">
                     <select aria-label={`${t.role} ${user.name}`} value={user.role} disabled={user.id === currentUser.id} onChange={(event) => updateAccount(user.id, { role: event.target.value as SessionUser['role'] })}>
-                      <option value="analyst">Fraud Analyst</option><option value="customer">Cardholder / Customer</option><option value="compliance">Compliance Officer</option><option value="admin">{t.administrator}</option>
+                      <option value="super_admin">Super Admin</option><option value="admin">{t.administrator}</option><option value="user">Standard User</option>
                     </select>
-                    <button type="button" className={`user-state-button ${user.active ? '' : 'is-inactive'}`} disabled={user.id === currentUser.id} onClick={() => updateAccount(user.id, { active: !user.active })}>
+                    <button type="button" className={`user-state-button ${user.active ? '' : 'is-inactive'}`} disabled={user.id === currentUser.id} onClick={() => setPendingStatusChange({ userId: user.id, nextActive: !user.active })}>
                       <i />{user.id === currentUser.id ? t.current : user.active ? t.active : t.inactive}
                     </button>
-                    {pendingDeleteId === user.id ? (
-                      <span className="delete-confirmation"><span>{t.deleteQuestion}</span><button type="button" onClick={() => deleteAccount(user.id)}>{t.confirm}</button><button type="button" onClick={() => setPendingDeleteId(null)}>{t.cancel}</button></span>
-                    ) : (
-                      <>
-                        <button type="button" className="user-reset-button" title="Reset password" aria-label={`Reset password for ${user.name}`} onClick={() => { setResetUserId(user.id); setResetNewPassword('); setError('); }}>↻</button>
-                        <button type="button" className="user-edit-button" title={`${t.edit} ${user.name}`} aria-label={`${t.edit} ${user.name}`} onClick={() => beginEdit(user)}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></button>
-                        <button type="button" className="user-delete-button" title={`${t.delete} ${user.name}`} aria-label={`${t.delete} ${user.name}`} disabled={user.id === currentUser.id} onClick={() => setPendingDeleteId(user.id)}>
-                          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" /></svg>
-                        </button>
-                      </>
-                    )}
+                    <button type="button" className="user-reset-button" title="Reset password" aria-label={`Reset password for ${user.name}`} onClick={() => { setResetUserId(user.id); setResetNewPassword(''); setError(''); }}>↻</button>
+                    <button type="button" className="user-edit-button" title={`${t.edit} ${user.name}`} aria-label={`${t.edit} ${user.name}`} onClick={() => beginEdit(user)}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></button>
+                    <button type="button" className="user-delete-button" title={`${t.delete} ${user.name}`} aria-label={`${t.delete} ${user.name}`} disabled={user.id === currentUser.id} onClick={() => setPendingDeleteId(user.id)}>
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" /></svg>
+                    </button>
                   </div>
                 </article>
               ))}
@@ -326,7 +327,25 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
           )}
         </div>
       </div>
-      {createOpen && (<div className="user-create-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setCreateOpen(false); }}><div className="user-create-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-title"><div className="user-edit-modal-heading"><div><strong id="create-user-title">{t.createAccount}</strong><small>Create a role-based dashboard account</small></div><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={() => setCreateOpen(false)}>×</button></div><form className="user-create-modal-form" onSubmit={createAccount}><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} required maxLength={100} /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} /></label><label><span>{t.temporaryPassword}<span className="required-mark" aria-hidden="true"> *</span></span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={12} maxLength={200} /></label><label>{t.role}<select value={role} onChange={(event) => setRole(event.target.value as SessionUser['role'])}><option value="analyst">Fraud Analyst</option><option value="customer">Cardholder / Customer</option><option value="compliance">Compliance Officer</option><option value="admin">{t.administrator}</option></select></label>{error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}<div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setCreateOpen(false)}>{t.cancel}</button><button type="submit" className="user-add-button">{t.createAccount}<span aria-hidden="true">+</span></button></div></form></div></div>)}      {resetUserId && (<div className="user-reset-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setResetUserId(null); }}><div className="user-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-user-title"><div className="user-edit-modal-heading"><strong id="reset-user-title">Reset password</strong><button type="button" className="modal-close-button" onClick={() => setResetUserId(null)}>×</button></div><p>Set a new password for this account.</p><input type="password" autoFocus minLength={12} placeholder="New password (12+ characters)" value={resetNewPassword} onChange={(event) => setResetNewPassword(event.target.value)} /><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setResetUserId(null)}>Cancel</button><button type="button" className="modal-update-button" onClick={() => void resetAccountPassword()}>Update password</button></div></div></div>)}
+      {pendingDeleteUser && (
+        <div className="delete-confirmation-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingDeleteId(null); }}>
+          <div className="delete-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirmation-title">
+            <div className="delete-confirmation-icon">!</div>
+            <div><h2 id="delete-confirmation-title">Delete account?</h2><p>Are you sure you want to delete <strong>{pendingDeleteUser.name}</strong>? This action cannot be undone.</p></div>
+            <div className="delete-confirmation-actions"><button type="button" className="modal-cancel-button" onClick={() => setPendingDeleteId(null)}>{t.cancel}</button><button type="button" className="delete-confirm-button" onClick={() => deleteAccount(pendingDeleteUser.id)}>{t.delete}</button></div>
+          </div>
+        </div>
+      )}
+      {pendingStatusUser && pendingStatusChange && (
+        <div className="delete-confirmation-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingStatusChange(null); }}>
+          <div className="delete-confirmation-modal status-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="status-confirmation-title">
+            <div className="status-confirmation-icon">↻</div>
+            <div><h2 id="status-confirmation-title">{pendingStatusChange.nextActive ? 'Activate account?' : 'Deactivate account?'}</h2><p>{pendingStatusChange.nextActive ? 'This account will be able to sign in and access its assigned workspace.' : 'This account will no longer be able to sign in until it is activated again.'}</p></div>
+            <div className="delete-confirmation-actions"><button type="button" className="modal-cancel-button" onClick={() => setPendingStatusChange(null)}>{t.cancel}</button><button type="button" className="status-confirm-button" onClick={() => { updateAccount(pendingStatusUser.id, { active: pendingStatusChange.nextActive }); setPendingStatusChange(null); }}>{pendingStatusChange.nextActive ? 'Activate' : 'Deactivate'}</button></div>
+          </div>
+        </div>
+      )}
+      {createOpen && (<div className="user-create-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setCreateOpen(false); }}><div className="user-create-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-title"><div className="user-edit-modal-heading"><div><strong id="create-user-title">{t.createAccount}</strong><small>Create a role-based dashboard account</small></div><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={() => setCreateOpen(false)}>×</button></div><form className="user-create-modal-form" onSubmit={createAccount}><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} required maxLength={100} /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} /></label><label><span>{t.temporaryPassword}<span className="required-mark" aria-hidden="true"> *</span></span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={12} maxLength={200} /></label><label>{t.role}<select value={role} onChange={(event) => setRole(event.target.value as SessionUser['role'])}><option value="super_admin">Super Admin</option><option value="admin">{t.administrator}</option><option value="analyst">Standard User</option></select></label>{error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}<div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setCreateOpen(false)}>{t.cancel}</button><button type="submit" className="user-add-button">{t.createAccount}<span aria-hidden="true">+</span></button></div></form></div></div>)}      {resetUserId && (<div className="user-reset-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setResetUserId(null); }}><div className="user-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-user-title"><div className="user-edit-modal-heading"><strong id="reset-user-title">Reset password</strong><button type="button" className="modal-close-button" onClick={() => setResetUserId(null)}>×</button></div><p>Set a new password for this account.</p><input type="password" autoFocus minLength={12} placeholder="New password (12+ characters)" value={resetNewPassword} onChange={(event) => setResetNewPassword(event.target.value)} /><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setResetUserId(null)}>Cancel</button><button type="button" className="modal-update-button" onClick={() => void resetAccountPassword()}>Update password</button></div></div></div>)}
       {editingUser && (<div className="user-edit-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) cancelEdit(); }}><div className="user-edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-user-title"><div className="user-edit-modal-heading"><strong id="edit-user-title">{t.edit} {editingUser.name}</strong><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={cancelEdit}>×</button></div><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input value={editName} onChange={(event) => setEditName(event.target.value)} required autoFocus /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" value={editEmail} onChange={(event) => setEditEmail(event.target.value)} required /></label><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={cancelEdit}>{t.cancel}</button><button type="button" className="modal-update-button" onClick={() => saveEdit(editingUser.id)}>{t.update}</button></div></div></div>)}
       <div className="role-access">
         <div className="user-directory-heading"><strong>{t.roleAccess}</strong><span>{t.demoPermissions}</span></div>
