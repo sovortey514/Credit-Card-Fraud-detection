@@ -13,12 +13,13 @@ from sklearn.preprocessing import RobustScaler
 
 from src.database import init_db, load_transactions, log_transaction, update_analyst_feedback
 from src.explainability import FraudExplainer
-from src.features import engineer_features_creditcard
+from src.fraud_detection.preprocessing_pipeline import RAW_FEATURES
 from src.rules import evaluate_rules
 from src.user_database import authenticate, create_reset_token, create_user, delete_user, init_user_db, list_users, reset_password, revoke_token, set_password, update_user, user_for_token
 
 ROOT = Path(__file__).resolve().parent
 MODEL_PATH = ROOT / "models" / "catboost_fraud_model.joblib"
+PREPROCESSING_PATH = ROOT / "models" / "creditcard_preprocessing.joblib"
 DATA_PATH = ROOT / "data" / "raw" / "creditcard.csv"
 RISK_THRESHOLD = 0.50
 
@@ -27,6 +28,7 @@ app = Flask(__name__)
 if not MODEL_PATH.exists():
     raise FileNotFoundError(f"Trained CatBoost model not found: {MODEL_PATH}")
 model = joblib.load(MODEL_PATH)
+preprocessing_pipeline = joblib.load(PREPROCESSING_PATH)
 explainer = FraudExplainer(model)
 
 if not DATA_PATH.exists():
@@ -215,9 +217,9 @@ def predict_fraud():
     if missing:
         return jsonify({"error": f"Missing required columns: {missing}"}), 422
 
-    df_features = engineer_features_creditcard(
-        pd.DataFrame([data]), amount_scaler=amount_scaler, time_scaler=time_scaler
-    ).drop(columns=["Class"], errors="ignore")
+    df_features = preprocessing_pipeline.transform(pd.DataFrame([data])).drop(
+        columns=["Class"], errors="ignore"
+    )
     expected_features = getattr(model, "feature_names_", None)
     if expected_features:
         df_features = df_features.reindex(columns=expected_features)

@@ -1,67 +1,57 @@
-# Money Transfer Fraud Detection — Full Research Project
+# Credit Card Fraud Detection
 
-**This is the complete project workspace**, not a Week 1-only folder. It contains a working baseline ML pipeline, a FastAPI scoring service, a simple React dashboard, tests, a replay script, and a 20-week roadmap. Some advanced components (historical feature engineering, streaming alerts, load testing) are planned work, not already implemented.
+Research and application code for imbalanced credit-card fraud detection using the Kaggle ULB dataset. It contains transaction time, amount, anonymized PCA components (`V1`–`V28`), and the `Class` label. The data does not identify card-present versus card-not-present transactions, so results cannot be described as a CNP-only evaluation.
 
 ## Requirements
-- Windows 11, VS Code, Python 3.11 or 3.12, Node.js 20+
-- Download the PaySim CSV from https://www.kaggle.com/datasets/ealaxi/paysim1 and save it as `data/raw/paysim.csv` (not bundled).
-- Use a sufficiently large PaySim sample for chronological splits; the full CSV can be large.
 
-## Install (PowerShell from the project root)
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-If Python 3.11 is unavailable, replace `-3.11` with `-3.12`.
+- Windows 11, Python 3.12 (or the Python version supported by the selected environment), and Node.js 20+ for the dashboard.
+- Place `creditcard.csv` at `data/raw/creditcard.csv`. The raw dataset is excluded from version control.
 
-## 1. Dataset exploration
+## Prepare the data
+
 ```powershell
+.\.venv\Scripts\python.exe scripts/verify_data.py
 .\.venv\Scripts\python.exe -m src.fraud_detection.eda
+.\.venv\Scripts\python.exe -m src.fraud_detection.prepare_creditcard
+.\.venv\Scripts\python.exe -m src.fraud_detection.engineer_creditcard_features
 ```
-Outputs: `reports/dataset_summary.csv`, `reports/transaction_types.csv`.
 
-## 2. Train and compare three models
+Preparation sorts by time, removes duplicate rows, creates chronological train/validation/test partitions, fits scaling on training data only, and writes Parquet files and audit metadata under `data/processed/`.
+
+## Fit preprocessing and compare models
+
 ```powershell
-.\.venv\Scripts\python.exe -m src.fraud_detection.train
+.\.venv\Scripts\python.exe scripts/fit_creditcard_preprocessing.py
+.\.venv\Scripts\python.exe scripts/benchmark_preprocessing.py
+.\.venv\Scripts\python.exe scripts/compare_creditcard_models.py
 ```
-Outputs: `models/fraud_model.joblib` and `reports/model_results.json`. If any chronological split lacks fraud examples, use a larger dataset. Training on the full PaySim file may take time and RAM.
 
-## 3. Start API (new terminal)
+The comparison trains balanced Logistic Regression and Random Forest baselines, evaluates F0/F1 with five chronological `TimeSeriesSplit` folds, and saves validation metrics plus PR/ROC plots under `reports/models/`.
+
+## Run the API and dashboard
+
+Start the API:
+
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.main:app --reload
+.\.venv\Scripts\python.exe app.py
 ```
-Open http://127.0.0.1:8000/docs . Health endpoint: http://127.0.0.1:8000/health .
 
-## 4. Start React dashboard (another terminal)
+In another terminal:
+
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
-Open http://127.0.0.1:5173 . Score a test transfer using the form.
 
-## 5. Replay synthetic transactions (optional)
-In another terminal at the project root:
-```powershell
-.\.venv\Scripts\python.exe scripts/replay.py --limit 20 --delay 0.5
-```
-This prints API results to the terminal; automatic dashboard streaming is **not yet implemented**.
+The API requires the trained model and preprocessing artifacts under `models/`. Docker Compose provides the local API and MySQL services.
 
-## 6. Run tests
+## Tests
+
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-## Structure
-- `data/`: PaySim input and derived data (raw CSV excluded from ZIP)
-- `src/fraud_detection/`: features, EDA, model comparison
-- `models/`: serialized trained model (generated)
-- `backend/`: FastAPI service
-- `frontend/`: React/TypeScript web UI
-- `scripts/`: replay helper
-- `tests/`: automated checks
-- `reports/`: experimental outputs
-- `docs/`: full research roadmap
+## Research limitation
 
-## Important scientific limitations
-The initial pipeline is a **baseline**. It has no historical behavioral aggregates yet. It selects the best model by validation average precision and selects a decision threshold on validation F1. It uses a chronological split and excludes post-transfer balances. Test results must be interpreted only for synthetic PaySim, not for real KHQR/bank operations. The first milestone is to run EDA successfully, then improve feature engineering and validation in later phases.
+The ULB dataset is anonymized and has no explicit payment-channel field. Findings apply to this dataset; they cannot establish CNP-specific performance or performance on real bank transactions.

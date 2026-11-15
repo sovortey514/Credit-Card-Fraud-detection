@@ -1,4 +1,4 @@
-"""Verify explainable fraud predictions through the running Flask API."""
+"""Verify explainable credit-card fraud predictions through the Flask API."""
 
 import requests
 

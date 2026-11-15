@@ -1,26 +1,18 @@
+"""Command-line entry point for credit-card fraud EDA."""
+
 import argparse
 from pathlib import Path
-import pandas as pd
+
+from .creditcard_eda import load_creditcard_data, plot_creditcard_overview, summarize_creditcard
 
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/raw/paysim.csv")
-    a = p.parse_args()
-    df = pd.read_csv(a.data)
-    out = Path("reports")
-    out.mkdir(exist_ok=True)
-    summary = {
-        "transactions": len(df),
-        "fraud_count": int(df.isFraud.sum()),
-        "fraud_rate": float(df.isFraud.mean()),
-        "missing_cells": int(df.isna().sum().sum()),
-    }
-    pd.DataFrame([summary]).to_csv(out / "dataset_summary.csv", index=False)
-    df.groupby("type", dropna=False).agg(
-        transactions=("isFraud", "size"), fraud_count=("isFraud", "sum")
-    ).to_csv(out / "transaction_types.csv")
-    print(summary)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path, default=Path("data/raw/creditcard.csv"))
+    args = parser.parse_args()
+    data = load_creditcard_data(args.data)
+    print(summarize_creditcard(data).to_string())
+    plot_creditcard_overview(data)
 
 
 if __name__ == "__main__":

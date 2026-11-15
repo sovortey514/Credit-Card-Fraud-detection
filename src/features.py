@@ -1,4 +1,4 @@
-"""Feature engineering helpers for the Credit Card and PaySim datasets."""
+"""Feature engineering helpers for credit-card fraud detection."""
 
 import numpy as np
 import pandas as pd
@@ -32,33 +32,3 @@ def engineer_features_creditcard(
     return result
 
 
-def engineer_features_paysim(df: pd.DataFrame) -> pd.DataFrame:
-    """Engineer features for the PaySim synthetic dataset."""
-    required = {
-        "type",
-        "amount",
-        "oldbalanceOrg",
-        "newbalanceOrig",
-        "oldbalanceDest",
-        "newbalanceDest",
-    }
-    missing = required - set(df.columns)
-    if missing:
-        raise ValueError(f"Missing PaySim columns: {sorted(missing)}")
-
-    result = df.copy()
-    result["errorBalanceOrig"] = (
-        result["newbalanceOrig"] + result["amount"] - result["oldbalanceOrg"]
-    )
-    result["errorBalanceDest"] = (
-        result["oldbalanceDest"] + result["amount"] - result["newbalanceDest"]
-    )
-    result["amount_to_orig_balance_ratio"] = result["amount"] / (
-        result["oldbalanceOrg"] + 1e-5
-    )
-    result["is_orig_zero_after"] = (result["newbalanceOrig"] == 0).astype(int)
-    result["is_dest_zero_before"] = (result["oldbalanceDest"] == 0).astype(int)
-    result = pd.get_dummies(result, columns=["type"], drop_first=True)
-
-    print(f"Engineered PaySim features. New total columns: {result.shape[1]}")
-    return result

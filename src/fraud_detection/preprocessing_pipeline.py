@@ -1,0 +1,110 @@
+"""Reusable, train-fitted preprocessing for credit-card fraud inference."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import RobustScaler
+
+
+ROOT = Path(__file__).resolve().parents[2]
+PCA_COMPONENTS = [f"V{i}" for i in range(1, 29)]
+INTERACTION_COMPONENTS = ["V14", "V17", "V12", "V10"]
+RAW_FEATURES = ["Time", "Amount", *PCA_COMPONENTS]
+F0_FEATURES = ["scaled_time", "scaled_amount", *PCA_COMPONENTS]
+F1_FEATURES = [
+    "hour_sin",
+    "hour_cos",
+    "amount_log1p",
+    "amount_global_zscore",
+    "amount_global_percentile",
+    "amount_rolling_zscore",
+    "amount_rolling_percentile",
+]
+INTERACTION_FEATURES = [
+    f"{left}_x_{right}"
+    for left_index, left in enumerate(INTERACTION_COMPONENTS)
+    for right in INTERACTION_COMPONENTS[left_index + 1 :]
+]
+
+
+def _validate_input(frame: pd.DataFrame) -> None:
+    missing = sorted(set(RAW_FEATURES) - set(frame.columns))
+    if missing:
+        raise ValueError(f"Missing credit-card columns: {missing}")
+    if frame.empty:
+        raise ValueError("At least one transaction is required")
+
+
+class CreditCardFeatureTransformer(BaseEstimator, TransformerMixin):
+    """Fit preprocessing statistics on training data and transform transactions.
+
+    Incoming rows are scored independently against the fitted training history.
+    This keeps single-row API inference identical to batch inference and prevents
+    a later row in a request batch from influencing an earlier row.
+    """
+
+    def __init__(self, rolling_window: int = 1_000) -> None:
+        self.rolling_window = rolling_window
+
+    def fit(self, X: pd.DataFrame, y=None):
+        _validate_input(X)
+        train = X.sort_values("Time", kind="stable")
+        self.amount_scaler_ = RobustScaler().fit(train[["Amount"]])
+        self.time_scaler_ = RobustScaler().fit(train[["Time"]])
+
+        amounts = train["Amount"].astype(float).to_numpy()
+        self.train_amounts_ = np.sort(amounts)
+        self.train_amount_mean_ = float(amounts.mean())
+        self.train_amount_std_ = float(amounts.std(ddof=0)) or 1.0
+        history = amounts[-self.rolling_window :]
+        self.rolling_amount_mean_ = float(history.mean())
+        self.rolling_amount_std_ = float(history.std(ddof=0)) or 1.0
+        self.n_features_in_ = len(RAW_FEATURES)
+        return self
+
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        if not hasattr(self, "train_amounts_"):
+            raise RuntimeError("CreditCardFeatureTransformer must be fitted first")
+        _validate_input(X)
+        result = X.copy()
+        time = result["Time"].astype(float)
+        amount = result["Amount"].astype(float)
+
+        result["scaled_amount"] = self.amount_scaler_.transform(result[["Amount"]]).ravel()
+        result["scaled_time"] = self.time_scaler_.transform(result[["Time"]]).ravel()
+        result["hour_of_day"] = (time / 3600) % 24
+        result["is_night_transaction"] = ((result["hour_of_day"] >= 22) | (result["hour_of_day"] <= 5)).astype(int)
+        result["log_amount"] = np.log1p(amount)
+
+        hour_angle = 2 * np.pi * ((time % 86_400) / 86_400)
+        result["hour_sin"] = np.sin(hour_angle)
+        result["hour_cos"] = np.cos(hour_angle)
+        result["amount_log1p"] = np.log1p(amount)
+        result["amount_global_zscore"] = (amount - self.train_amount_mean_) / self.train_amount_std_
+        result["amount_global_percentile"] = (
+            np.searchsorted(self.train_amounts_, amount.to_numpy(), side="right")
+            / len(self.train_amounts_)
+        )
+        result["amount_rolling_zscore"] = (
+            amount - self.rolling_amount_mean_
+        ) / self.rolling_amount_std_
+        result["amount_rolling_percentile"] = (
+            np.searchsorted(self.train_amounts_[-self.rolling_window :], amount.to_numpy(), side="right")
+            / self.rolling_window
+        )
+
+        for left_index, left in enumerate(INTERACTION_COMPONENTS):
+            for right in INTERACTION_COMPONENTS[left_index + 1 :]:
+                result[f"{left}_x_{right}"] = result[left].astype(float) * result[right].astype(float)
+
+        return result
+
+
+def build_creditcard_preprocessing_pipeline() -> Pipeline:
+    """Return the sklearn pipeline used by training and API inference."""
+    return Pipeline([("credit_card_features", CreditCardFeatureTransformer())])

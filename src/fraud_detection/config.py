@@ -12,7 +12,6 @@ REPORTS_DIR = ROOT / "reports"
 SEED = 42
 TRAIN_RATIO = 0.70
 VALIDATION_RATIO = 0.15
-TRANSACTION_TYPES = ("TRANSFER", "CASH_OUT")
 
 
 def seed_everything(seed: int = SEED) -> None:

@@ -100,11 +100,11 @@ export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
           <span className="brand-name">Transfer<span>Guard</span></span>
         </a>
         <div className="auth-story-copy">
-          <span className="auth-kicker">MONEY TRANSFER · RESEARCH WORKSPACE</span>
+          <span className="auth-kicker">CREDIT CARD FRAUD · RESEARCH WORKSPACE</span>
           <h1>Study the signal.<br /><span>Question the score.</span></h1>
-          <p>A private workspace for exploring synthetic PaySim fraud patterns and evaluating a leakage-aware baseline.</p>
+          <p>A private workspace for exploring credit-card fraud patterns and reviewing model explanations.</p>
         </div>
-        <div className="auth-story-footer"><span className="story-dot" />LOCAL RESEARCH ENVIRONMENT<span className="story-divider" />PAYSIM DATASET</div>
+        <div className="auth-story-footer"><span className="story-dot" />LOCAL RESEARCH ENVIRONMENT<span className="story-divider" />CREDIT CARD DATASET</div>
       </section>
 
       <section className="auth-panel" id="login">
