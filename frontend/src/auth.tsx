@@ -290,14 +290,12 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
   const editingUser = users.find((user) => user.id === editingUserId);
 
   return (
-    <section className="panel user-management" id="user-management">
+    <section className="panel user-management user-management-modern" id="user-management">
       <div className="panel-heading user-management-heading">
         <div><h2>{t.userManagement}</h2><p>{t.workspaceAccounts}</p></div>
-        <span className="record-count">{t.administrator}</span>
+        <div className="user-management-heading-actions"><button type="button" className="create-account-button" onClick={() => setCreateOpen(true)}><span aria-hidden="true">+</span>{t.createAccount}</button></div>
       </div>
       <div className="user-management-grid">
-        <button type="button" className="user-add-trigger" onClick={() => setCreateOpen(true)}><span className="add-trigger-icon">+</span><span><strong>{t.createAccount}</strong><small>{t.addDemoAccount}</small></span></button>
-
         <div className="user-directory">
           <div className="user-directory-heading"><div className="directory-title"><strong>{t.workspaceDirectory}</strong><span className="directory-edit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></span></div><span>{users.length} {t.account}</span></div>          <div className="user-directory-controls"><label className="user-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search users..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><select aria-label="Filter by role" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}><option value="all">All roles</option><option value="super_admin">Super Admin</option><option value="admin">Risk Manager / Admin</option><option value="user">Standard User</option></select><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
           {error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}

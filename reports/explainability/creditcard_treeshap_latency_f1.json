@@ -1,0 +1,103 @@
+{
+  "dataset": "Kaggle ULB Credit Card Fraud Detection",
+  "feature_set": "F1",
+  "seed": 42,
+  "medoid_method": "KMeans centroids with nearest actual training row selected as medoid",
+  "medoid_count": 50,
+  "analysis_rows": 1000,
+  "benchmark_rows": 100,
+  "models": {
+    "random_forest": {
+      "status": "complete",
+      "source_artifact": "models\\creditcard\\random_forest_class_weight_f1.joblib",
+      "medoid_background": "reports\\explainability\\random_forest_background_medoids_k50.joblib",
+      "raw_bundle": "models\\creditcard\\random_forest_treeshap_raw_f1.joblib",
+      "medoid_bundle": "models\\creditcard\\random_forest_treeshap_medoids50_f1.joblib",
+      "medoid_metadata": {
+        "k": 50,
+        "fit_rows": 198609,
+        "fit_seconds": 28.79306550000001
+      },
+      "latency_raw": {
+        "transactions": 100,
+        "mean_ms_per_transaction": 36.1919870001293,
+        "median_ms_per_transaction": 36.463800000092306,
+        "p95_ms_per_transaction": 40.884334999645944
+      },
+      "latency_k50_medoids": {
+        "transactions": 100,
+        "mean_ms_per_transaction": 90.65744999996241,
+        "median_ms_per_transaction": 83.4634000002552,
+        "p95_ms_per_transaction": 134.1991200004486
+      },
+      "top3_exact_raw": [
+        "V12",
+        "V4",
+        "V11"
+      ],
+      "top3_k50_medoids": [
+        "V12",
+        "V11",
+        "V14_x_V12"
+      ],
+      "top3_overlap_count": 2,
+      "top3_overlap_ratio": 0.6666666666666666,
+      "exact_mean_abs_shap": {
+        "V12": 0.05669622749308031,
+        "V4": 0.04743826401139863,
+        "V11": 0.04482607396222988
+      },
+      "medoid_mean_abs_shap": {
+        "V12": 0.046658822813945844,
+        "V11": 0.03143602274857611,
+        "V14_x_V12": 0.030265434430656993
+      }
+    },
+    "xgboost": {
+      "status": "complete",
+      "source_artifact": "models\\creditcard\\xgboost_class_weight_f1.joblib",
+      "medoid_background": "reports\\explainability\\xgboost_background_medoids_k50.joblib",
+      "raw_bundle": "models\\creditcard\\xgboost_treeshap_raw_f1.joblib",
+      "medoid_bundle": "models\\creditcard\\xgboost_treeshap_medoids50_f1.joblib",
+      "medoid_metadata": {
+        "k": 50,
+        "fit_rows": 198609,
+        "fit_seconds": 34.86986650000108
+      },
+      "latency_raw": {
+        "transactions": 100,
+        "mean_ms_per_transaction": 26.17628900003183,
+        "median_ms_per_transaction": 22.71134999955393,
+        "p95_ms_per_transaction": 43.19571500082019
+      },
+      "latency_k50_medoids": {
+        "transactions": 100,
+        "mean_ms_per_transaction": 26.00975900008052,
+        "median_ms_per_transaction": 25.510399999802758,
+        "p95_ms_per_transaction": 32.15600999928938
+      },
+      "top3_exact_raw": [
+        "V4",
+        "V14",
+        "V12"
+      ],
+      "top3_k50_medoids": [
+        "V4",
+        "V14",
+        "V11"
+      ],
+      "top3_overlap_count": 2,
+      "top3_overlap_ratio": 0.6666666666666666,
+      "exact_mean_abs_shap": {
+        "V4": 1.7465381622314453,
+        "V14": 1.4453821182250977,
+        "V12": 0.7546859383583069
+      },
+      "medoid_mean_abs_shap": {
+        "V4": 1.3596046020206307,
+        "V14": 1.050805989727075,
+        "V11": 0.646973544347126
+      }
+    }
+  }
+}

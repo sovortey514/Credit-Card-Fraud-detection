@@ -2080,3 +2080,463 @@ body { color: var(--page-text) !important; }
 .hybrid-dashboard .user-reset-modal,
 .hybrid-dashboard .user-edit-modal,
 .hybrid-dashboard .user-create-modal { font-size: 13px !important; }
+
+/* Header-level display and language controls. */
+.dashboard-preferences { display: inline-flex; align-items: center; gap: 8px; }
+.dashboard-language-switch { display: inline-flex; align-items: center; padding: 3px; border: 1px solid #294256; border-radius: 9px; background: #101f2e; }
+.dashboard-language-switch button,
+.dashboard-theme-switch { height: 32px; border: 0; border-radius: 7px; background: transparent; color: #7f99ac; font-size: 10px; font-weight: 800; cursor: pointer; transition: .18s ease; }
+.dashboard-language-switch button { min-width: 31px; }
+.dashboard-language-switch button:hover,
+.dashboard-language-switch button.is-active { background: rgba(103, 232, 249, .16); color: #a5f3fc; }
+.dashboard-theme-switch { display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid #294256; background: #101f2e; color: #a5f3fc; }
+.dashboard-theme-switch:hover { border-color: #67e8f9; background: rgba(103, 232, 249, .12); }
+.dashboard-theme-switch span:first-child { font-size: 16px; line-height: 1; }
+.dashboard-theme-light .dashboard-language-switch,
+.dashboard-theme-light .dashboard-theme-switch { border-color: #c9dbe6; background: #ffffff; color: #42647b; }
+.dashboard-theme-light .dashboard-language-switch button:hover,
+.dashboard-theme-light .dashboard-language-switch button.is-active { background: #e5f5fa; color: #176b78; }
+.dashboard-theme-light .dashboard-theme-switch:hover { border-color: #6bb9c7; background: #eef9fb; }
+@media (max-width: 700px) { .dashboard-preferences { gap: 5px; } .dashboard-theme-switch { padding: 0 8px; } .dashboard-theme-switch span:last-child { display: none; } }
+
+/* Keep the live header organized when several controls are visible. */
+.dashboard-page-header { align-items: flex-start !important; }
+.dashboard-header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; min-width: max-content; }
+.dashboard-header-utility,
+.dashboard-header-run { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.dashboard-header-utility > button,
+.dashboard-header-run > button,
+.dashboard-header-run > select { min-height: 34px; white-space: nowrap; }
+.dashboard-header-run > select { min-width: 122px; }
+.dashboard-header-run > button { min-width: 104px; }
+.dashboard-theme-light .dashboard-header-utility > button,
+.dashboard-theme-light .dashboard-header-run > select { border-color: #c9dbe6 !important; background: #ffffff !important; color: #42647b !important; }
+.dashboard-theme-light .dashboard-header-run > select { color: #1f3349 !important; }
+@media (max-width: 1050px) {
+  .dashboard-page-header { flex-direction: column !important; }
+  .dashboard-header-actions { width: 100%; align-items: flex-start; }
+  .dashboard-header-utility,
+  .dashboard-header-run { justify-content: flex-start; flex-wrap: wrap; }
+}
+@media (max-width: 560px) {
+  .dashboard-header-utility,
+  .dashboard-header-run { width: 100%; }
+  .dashboard-header-utility > button,
+  .dashboard-header-run > select,
+  .dashboard-header-run > button { flex: 1; }
+}
+
+/* Complete the light palette for live dashboard content cards. */
+.dashboard-theme-light .dashboard-card { background: #ffffff !important; border-color: #c6d5e0 !important; box-shadow: 0 16px 38px rgba(42, 73, 101, .1) !important; }
+.dashboard-theme-light .dashboard-card .text-white { color: #172e49 !important; }
+.dashboard-theme-light .dashboard-card .text-slate-200,
+.dashboard-theme-light .dashboard-card .text-slate-300 { color: #36516a !important; }
+.dashboard-theme-light .dashboard-card .text-slate-400,
+.dashboard-theme-light .dashboard-card .text-slate-500,
+.dashboard-theme-light .dashboard-card .text-slate-600 { color: #536b80 !important; }
+.dashboard-theme-light .dashboard-feed thead { background: #f4f8fb !important; color: #536b80 !important; }
+.dashboard-theme-light .dashboard-feed th { border-color: #d7e3eb !important; }
+.dashboard-theme-light .dashboard-feed td { border-color: #e4edf2 !important; }
+.dashboard-theme-light .dashboard-feed .bg-slate-800 { background: #e4edf2 !important; }
+.dashboard-theme-light .dashboard-delivery .text-emerald-300 { color: #159a70 !important; }
+.dashboard-theme-light .dashboard-stream-status { border-color: #c9dbe6 !important; background: #ffffff !important; color: #567087 !important; }
+.dashboard-theme-light .dashboard-stream-status .bg-slate-600 { background: #8298a8 !important; }
+.dashboard-theme-light > aside .text-slate-500,
+.dashboard-theme-light > aside .text-slate-600,
+.dashboard-theme-light > aside .text-slate-400,
+.dashboard-theme-light > main .text-slate-400,
+.dashboard-theme-light > main .text-slate-500 { color: #405a70 !important; }
+.dashboard-theme-light > aside nav button { color: #38556d !important; }
+.dashboard-theme-light > aside nav button:hover { background: #e5f1f6 !important; color: #173f5b !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 { background: #d7eef5 !important; color: #087f96 !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 span { color: #087f96 !important; }
+.dashboard-theme-light > aside > p { color: #49677d !important; letter-spacing: .24em; }
+.dashboard-theme-light > aside .text-slate-200 { color: #1d344b !important; }
+.dashboard-theme-light > aside .text-slate-600 { color: #587187 !important; }
+.dashboard-theme-light > aside .text-slate-500 { color: #466279 !important; }
+.dashboard-theme-light > aside .bg-violet-300\/20 { background: #e9e5fb !important; color: #705bb5 !important; }
+.dashboard-theme-light > aside .text-violet-200 { color: #705bb5 !important; }
+
+/* Stronger light-mode dashboard palette. */
+.dashboard-theme-light { background: #cbd9e3 !important; color: #0d263d !important; }
+.dashboard-theme-light > aside { background: #e1ebf1 !important; border-color: #8ea8b8 !important; }
+.dashboard-theme-light > aside .border-slate-800 { border-color: #8ea8b8 !important; }
+.dashboard-theme-light > aside .bg-slate-900\/50 { background: #d1e0e8 !important; }
+.dashboard-theme-light > aside nav button { color: #294b64 !important; }
+.dashboard-theme-light > aside nav button:hover { background: #b4d5e2 !important; color: #0c3450 !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 { background: #91cddd !important; color: #064d65 !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 span { color: #075d76 !important; }
+.dashboard-theme-light .dashboard-card { border-color: #7f9cab !important; box-shadow: 0 20px 46px rgba(31, 67, 94, .2) !important; }
+.dashboard-theme-light .dashboard-card .text-white { color: #102a43 !important; }
+.dashboard-theme-light .dashboard-card .text-slate-200,
+.dashboard-theme-light .dashboard-card .text-slate-300 { color: #294b64 !important; }
+.dashboard-theme-light .dashboard-card .text-slate-400,
+.dashboard-theme-light .dashboard-card .text-slate-500,
+.dashboard-theme-light .dashboard-card .text-slate-600 { color: #274c65 !important; }
+.dashboard-theme-light .dashboard-feed thead { background: #d2e0e8 !important; color: #173d58 !important; }
+.dashboard-theme-light .dashboard-feed th { border-color: #7f9cab !important; color: #173d58 !important; }
+.dashboard-theme-light .dashboard-feed td { border-color: #b8cbd6 !important; color: #274c65 !important; }
+.dashboard-theme-light .dashboard-stream-status { border-color: #afc2cf !important; background: #f8fbfd !important; color: #294b64 !important; }
+
+/* Strong light-mode palette for the user-management page. */
+.dashboard-theme-light .user-management-modern { background: #ffffff !important; border-color: #8ea8b8 !important; box-shadow: 0 20px 46px rgba(31, 67, 94, .18) !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading { background: #c9e3eb !important; border-color: #8ea8b8 !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading h2 { color: #0d2c45 !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading p { color: #31566f !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading .record-count { background: #e8f2f5 !important; border-color: #9db8c5 !important; color: #1e5870 !important; }
+.dashboard-theme-light .user-management-modern .create-account-button { background: #1f879b !important; border-color: #176d80 !important; color: #ffffff !important; }
+.dashboard-theme-light .user-management-modern .create-account-button:hover { background: #176d80 !important; }
+.dashboard-theme-light .user-management-modern .user-directory,
+.dashboard-theme-light .user-management-modern .role-access { background: #ffffff !important; border-color: #8ea8b8 !important; }
+.dashboard-theme-light .user-management-modern .user-directory-heading,
+.dashboard-theme-light .user-management-modern .role-access .user-directory-heading { background: #dce9ef !important; border-color: #8ea8b8 !important; }
+.dashboard-theme-light .user-management-modern .user-directory-heading strong { color: #123b58 !important; }
+.dashboard-theme-light .user-management-modern .user-directory-heading > span { color: #31566f !important; }
+.dashboard-theme-light .user-management-modern .user-directory-controls { background: #eef4f7 !important; border-color: #afc2cf !important; }
+.dashboard-theme-light .user-management-modern .user-directory-controls .user-search,
+.dashboard-theme-light .user-management-modern .user-directory-controls input,
+.dashboard-theme-light .user-management-modern .user-directory-controls select { background: #ffffff !important; border-color: #9db4c2 !important; color: #173d58 !important; }
+.dashboard-theme-light .user-management-modern .user-directory-controls input::placeholder { color: #607c8f !important; }
+.dashboard-theme-light .user-management-modern .user-row { border-color: #b8cad4 !important; }
+.dashboard-theme-light .user-management-modern .user-row:hover { background: #eaf3f6 !important; }
+.dashboard-theme-light .user-management-modern .user-identity strong { color: #102f49 !important; }
+.dashboard-theme-light .user-management-modern .user-identity > span:not(.user-role-label) { color: #41637a !important; }
+.dashboard-theme-light .user-management-modern .user-role-label { background: #c9e9ef !important; color: #08728a !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools select,
+.dashboard-theme-light .user-management-modern .user-state-button,
+.dashboard-theme-light .user-management-modern .user-reset-button,
+.dashboard-theme-light .user-management-modern .user-edit-button,
+.dashboard-theme-light .user-management-modern .user-delete-button { background: #f4f8fa !important; border-color: #9db4c2 !important; color: #31566f !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools select:focus { border-color: #1f879b !important; box-shadow: 0 0 0 3px rgba(31, 135, 155, .18) !important; }
+.dashboard-theme-light .user-management-modern .user-state-button { color: #168362 !important; }
+.dashboard-theme-light .user-management-modern .role-access-table th { background: #dce9ef !important; color: #31566f !important; border-color: #8ea8b8 !important; }
+.dashboard-theme-light .user-management-modern .role-access-table td { background: #ffffff !important; color: #41637a !important; border-color: #b8cad4 !important; }
+.dashboard-theme-light .user-management-modern .role-access-table td:first-child { color: #102f49 !important; }
+.dashboard-theme-light .user-management-modern .user-management-footnote { color: #41637a !important; }
+
+/* Light mode uses near-black body text for maximum readability. */
+.dashboard-theme-light > main .text-slate-400,
+.dashboard-theme-light > main .text-slate-500,
+.dashboard-theme-light > main .text-slate-600,
+.dashboard-theme-light .dashboard-card .text-slate-400,
+.dashboard-theme-light .dashboard-card .text-slate-500,
+.dashboard-theme-light .dashboard-card .text-slate-600,
+.dashboard-theme-light .dashboard-feed p,
+.dashboard-theme-light .dashboard-delivery p,
+.dashboard-theme-light .dashboard-delivery span,
+.dashboard-theme-light .dashboard-delivery strong { color: #111827 !important; }
+.dashboard-theme-light > aside .text-slate-400,
+.dashboard-theme-light > aside .text-slate-500,
+.dashboard-theme-light > aside .text-slate-600 { color: #111827 !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading p,
+.dashboard-theme-light .user-management-modern .user-directory-heading > span,
+.dashboard-theme-light .user-management-modern .user-identity > span:not(.user-role-label),
+.dashboard-theme-light .user-management-modern .user-management-footnote,
+.dashboard-theme-light .user-management-modern .role-access-table td { color: #111827 !important; }
+
+/* Larger, easier-to-scan typography for the administration view. */
+.dashboard-page-header h1 { font-size: clamp(2.35rem, 3.5vw, 3.25rem) !important; line-height: 1.08 !important; }
+.dashboard-page-header p.text-sm { font-size: 17px !important; line-height: 1.55 !important; }
+.dashboard-page-header .text-\[11px\] { font-size: 12px !important; }
+.dashboard-header-actions button,
+.dashboard-header-actions select { font-size: 12px !important; }
+.dashboard-card .text-\[10px\] { font-size: 12px !important; }
+.dashboard-card .text-3xl { font-size: 2.35rem !important; }
+.dashboard-card .text-xs { font-size: 13px !important; }
+.dashboard-feed h2,
+.dashboard-delivery h2 { font-size: 17px !important; }
+.dashboard-feed p,
+.dashboard-delivery p,
+.dashboard-delivery span,
+.dashboard-delivery strong { font-size: 13px !important; }
+.dashboard-feed th { font-size: 11px !important; }
+.dashboard-feed td { font-size: 13px !important; }
+.dashboard-shell aside nav button { font-size: 14px !important; }
+.dashboard-shell aside > p { font-size: 11px !important; }
+.user-management-modern .user-management-heading h2 { font-size: 21px !important; }
+.user-management-modern .user-management-heading p { font-size: 14px !important; }
+.user-management-modern .user-management-heading .record-count { font-size: 12px !important; }
+.user-management-modern .create-account-button { height: 38px; font-size: 12px; }
+.user-management-modern .user-directory-heading strong { font-size: 15px !important; }
+.user-management-modern .user-directory-heading > span { font-size: 12px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { height: 38px; font-size: 13px !important; }
+.user-management-modern .user-row { min-height: 92px; }
+.user-management-modern .user-identity strong { font-size: 14px; }
+.user-management-modern .user-identity > span:not(.user-role-label) { font-size: 12px; }
+.user-management-modern .user-role-label { font-size: 11px; }
+.user-management-modern .user-row-tools select { height: 38px; font-size: 12px !important; }
+.user-management-modern .user-state-button,
+.user-management-modern .user-reset-button,
+.user-management-modern .user-edit-button,
+.user-management-modern .user-delete-button { min-height: 38px; font-size: 12px; }
+.user-management-modern .role-access-table th { font-size: 11px !important; }
+.user-management-modern .role-access-table td { font-size: 13px !important; }
+.user-management-modern .user-management-footnote { font-size: 11px !important; }
+.user-management-modern .user-management-heading h2 { font-size: 24px !important; }
+.user-management-modern .user-management-heading p { font-size: 16px !important; }
+.user-management-modern .user-management-heading .record-count { font-size: 13px !important; }
+.user-management-modern .create-account-button { height: 42px; padding: 0 15px; font-size: 13px; }
+.user-management-modern .user-directory-heading strong { font-size: 17px !important; }
+.user-management-modern .user-directory-heading > span { font-size: 13px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { height: 42px; font-size: 14px !important; }
+.user-management-modern .user-row { min-height: 104px; padding-top: 18px !important; padding-bottom: 18px !important; }
+.user-management-modern .user-identity strong { font-size: 16px; }
+.user-management-modern .user-identity > span:not(.user-role-label) { font-size: 14px; }
+.user-management-modern .user-role-label { font-size: 12px; }
+.user-management-modern .user-row-tools select { height: 42px; font-size: 13px !important; }
+.user-management-modern .user-state-button,
+.user-management-modern .user-reset-button,
+.user-management-modern .user-edit-button,
+.user-management-modern .user-delete-button { min-height: 42px; font-size: 13px; }
+.user-management-modern .role-access-table th { font-size: 12px !important; }
+.user-management-modern .role-access-table td { font-size: 15px !important; }
+.user-management-modern .user-management-footnote { font-size: 13px !important; }
+.user-management-modern .user-management-heading h2 { font-size: 28px !important; }
+.user-management-modern .user-management-heading p { font-size: 18px !important; }
+.user-management-modern .user-management-heading .record-count { font-size: 15px !important; }
+.user-management-modern .create-account-button { height: 46px; padding: 0 18px; font-size: 15px; }
+.user-management-modern .user-directory-heading strong { font-size: 20px !important; }
+.user-management-modern .user-directory-heading > span { font-size: 15px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { height: 46px; font-size: 16px !important; }
+.user-management-modern .user-row { min-height: 122px; }
+.user-management-modern .user-identity strong { font-size: 18px; }
+.user-management-modern .user-identity > span:not(.user-role-label) { font-size: 16px; }
+.user-management-modern .user-role-label { font-size: 14px; }
+.user-management-modern .user-row-tools select { height: 46px; font-size: 15px !important; }
+.user-management-modern .user-state-button,
+.user-management-modern .user-reset-button,
+.user-management-modern .user-edit-button,
+.user-management-modern .user-delete-button { min-height: 46px; font-size: 15px; }
+.user-management-modern .role-access-table th { font-size: 14px !important; }
+.user-management-modern .role-access-table td { font-size: 17px !important; }
+.user-management-modern .user-management-footnote { font-size: 15px !important; }
+.dashboard-theme-light .text-cyan-300 { color: #087f96 !important; }
+.dashboard-theme-light .text-violet-300 { color: #6f5ab7 !important; }
+.dashboard-theme-light .text-amber-300 { color: #a66d00 !important; }
+.dashboard-theme-light .text-rose-300 { color: #b94e68 !important; }
+.dashboard-theme-light .text-emerald-300 { color: #087c5e !important; }
+.dashboard-theme-light .dashboard-card .tracking-\[0\.2em\] { color: #466177 !important; }
+.dashboard-theme-light .dashboard-feed th { color: #466177 !important; font-weight: 800 !important; }
+.dashboard-theme-light .dashboard-feed td { color: #36516a !important; }
+
+/* Live dashboard user management: compact dark workspace treatment. */
+.user-management-modern {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  color: #e2e8f0 !important;
+  background: #0d1d2c !important;
+  border: 1px solid #203447 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .18) !important;
+}
+.user-management-modern .user-management-heading {
+  margin: 0 !important;
+  padding: 24px 28px !important;
+  background: linear-gradient(115deg, rgba(17, 70, 92, .72), rgba(13, 29, 44, .96)) !important;
+  border-bottom: 1px solid #203447 !important;
+}
+.user-management-modern .user-management-heading h2 { color: #f8fafc !important; font-size: 18px !important; letter-spacing: -.02em; }
+.user-management-modern .user-management-heading p { margin-top: 5px; color: #91a6b8 !important; font-size: 12px !important; }
+.user-management-modern .user-management-heading .record-count { color: #67e8f9 !important; font-size: 11px !important; }
+.user-management-modern .user-management-grid { display: grid !important; grid-template-columns: 240px minmax(0, 1fr) !important; gap: 18px !important; padding: 22px 28px 24px !important; }
+.user-management-modern .user-add-trigger {
+  min-height: 196px;
+  margin: 0 !important;
+  justify-content: center;
+  padding: 22px !important;
+  border: 1px dashed #2d83a4 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, rgba(21, 75, 98, .38), rgba(11, 37, 54, .72)) !important;
+  color: #a5f3fc !important;
+  box-shadow: none !important;
+}
+.user-management-modern .user-add-trigger:hover { border-color: #67e8f9 !important; background: rgba(18, 78, 102, .5) !important; box-shadow: 0 12px 30px rgba(34, 211, 238, .1) !important; }
+.user-management-modern .user-add-trigger .add-trigger-icon { width: 38px; height: 38px; border-radius: 11px; background: #67e8f9 !important; color: #082132 !important; }
+.user-management-modern .user-add-trigger strong { color: #f8fafc !important; font-size: 13px; }
+.user-management-modern .user-add-trigger small { color: #8da7b8 !important; font-size: 10px; }
+.user-management-modern .user-directory,
+.user-management-modern .role-access { min-width: 0; border: 1px solid #203447 !important; border-radius: 14px !important; background: #0b1a28 !important; }
+.user-management-modern .user-directory-heading,
+.user-management-modern .role-access .user-directory-heading { padding: 15px 17px !important; background: #102638 !important; border-bottom: 1px solid #203447 !important; }
+.user-management-modern .user-directory-heading strong { color: #f8fafc !important; font-size: 13px !important; }
+.user-management-modern .user-directory-heading > span { color: #7f99ac !important; font-size: 10px !important; }
+.user-management-modern .user-directory-controls { display: flex; gap: 8px; padding: 11px 14px !important; background: #0b1a28 !important; border-bottom: 1px solid #203447 !important; }
+.user-management-modern .user-directory-controls .user-search { flex: 1; min-width: 140px; background: #101f2e !important; border: 1px solid #294256 !important; border-radius: 9px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { height: 34px; background: #101f2e !important; border: 1px solid #294256 !important; border-radius: 9px !important; color: #dbeafe !important; font-size: 11px !important; }
+.user-management-modern .user-directory-controls input { border: 0 !important; }
+.user-management-modern .user-directory-controls input::placeholder { color: #6f8798 !important; }
+.user-management-modern .user-directory-controls select { min-width: 112px; padding: 0 9px; }
+.user-management-modern .user-row { grid-template-columns: 38px minmax(150px, 1fr) minmax(360px, auto) !important; gap: 12px !important; padding: 15px 17px !important; border-bottom: 1px solid #1b3041 !important; }
+.user-management-modern .user-row:hover { background: #102638 !important; }
+.user-management-modern .user-avatar { background: rgba(103, 232, 249, .14) !important; color: #a5f3fc !important; }
+.user-management-modern .user-identity strong { color: #f1f5f9 !important; font-size: 12px; }
+.user-management-modern .user-identity > span:not(.user-role-label) { color: #7f99ac !important; font-size: 10px; }
+.user-management-modern .user-role-label { width: fit-content; margin-top: 4px; background: rgba(103, 232, 249, .1) !important; color: #67e8f9 !important; }
+.user-management-modern .user-row-tools { display: flex !important; flex-wrap: nowrap !important; justify-content: flex-end !important; gap: 7px !important; }
+.user-management-modern .user-row-tools select { min-width: 132px; height: 34px; background: #101f2e !important; border: 1px solid #294256 !important; border-radius: 9px !important; color: #cbd5e1 !important; font-size: 10px !important; }
+.user-management-modern .user-state-button,
+.user-management-modern .user-reset-button,
+.user-management-modern .user-edit-button,
+.user-management-modern .user-delete-button { min-height: 34px; border-radius: 9px !important; border: 1px solid #294256 !important; background: #101f2e !important; color: #94a3b8 !important; }
+.user-management-modern .user-state-button { padding: 0 10px; color: #6ee7b7 !important; }
+.user-management-modern .user-state-button.is-inactive { color: #94a3b8 !important; }
+.user-management-modern .user-reset-button:hover,
+.user-management-modern .user-edit-button:hover { border-color: #67e8f9 !important; color: #67e8f9 !important; }
+.user-management-modern .user-delete-button:hover { border-color: #fb7185 !important; color: #fda4af !important; }
+.user-management-modern .role-access { margin: 0 28px 20px !important; overflow: hidden; }
+.user-management-modern .role-access-table { width: 100%; color: #94a3b8; }
+.user-management-modern .role-access-table th { padding: 11px 16px; background: #102638 !important; color: #71899a !important; border-color: #203447 !important; font-size: 9px !important; }
+.user-management-modern .role-access-table td { padding: 12px 16px; background: #0b1a28 !important; color: #8da7b8 !important; border-color: #1b3041 !important; font-size: 11px !important; }
+.user-management-modern .role-access-table td:first-child { color: #e2e8f0 !important; }
+.user-management-modern .user-management-footnote { margin: 0 28px 22px !important; color: #637b8c !important; font-size: 10px !important; }
+@media (max-width: 960px) {
+  .user-management-modern .user-management-grid { grid-template-columns: 1fr !important; }
+  .user-management-modern .user-add-trigger { min-height: 0; justify-content: flex-start; }
+  .user-management-modern .user-row { grid-template-columns: 38px minmax(0, 1fr) !important; }
+  .user-management-modern .user-row-tools { grid-column: 2; justify-content: flex-start !important; flex-wrap: wrap !important; }
+}
+@media (max-width: 620px) {
+  .user-management-modern .user-management-heading,
+  .user-management-modern .user-management-grid { padding-left: 16px !important; padding-right: 16px !important; }
+  .user-management-modern .user-directory-controls { flex-direction: column; }
+  .user-management-modern .user-directory-controls .user-search,
+  .user-management-modern .user-directory-controls select { width: 100%; }
+  .user-management-modern .role-access { margin-left: 16px !important; margin-right: 16px !important; }
+  .user-management-modern .user-management-footnote { margin-left: 16px !important; margin-right: 16px !important; }
+}
+
+/* Compact create action and persisted dashboard theme toggle. */
+.user-management-modern .user-management-heading-actions { display: flex; align-items: center; gap: 14px; }
+.user-management-modern .create-account-button { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border: 1px solid rgba(103, 232, 249, .38); border-radius: 9px; background: rgba(103, 232, 249, .12); color: #a5f3fc; font-size: 11px; font-weight: 700; cursor: pointer; transition: .2s ease; }
+.user-management-modern .create-account-button span { font-size: 17px; line-height: 1; }
+.user-management-modern .create-account-button:hover { border-color: #67e8f9; background: rgba(103, 232, 249, .2); transform: translateY(-1px); }
+.user-management-modern .user-management-grid { display: block !important; }
+
+.dashboard-theme-light { background: #eef3f7 !important; color: #1d344b !important; }
+.dashboard-theme-light > aside { background: #f7fafc !important; border-color: #cbd9e3 !important; }
+.dashboard-theme-light > aside .border-slate-800 { border-color: #cbd9e3 !important; }
+.dashboard-theme-light > aside .bg-slate-900\/50 { background: #edf3f7 !important; }
+.dashboard-theme-light > aside .text-white,
+.dashboard-theme-light > aside .text-slate-200 { color: #1f3349 !important; }
+.dashboard-theme-light > aside .text-slate-500,
+.dashboard-theme-light > aside .text-slate-600,
+.dashboard-theme-light > aside .text-slate-400 { color: #647b8f !important; }
+.dashboard-theme-light > aside .hover\:text-slate-200:hover { color: #1f3349 !important; }
+.dashboard-theme-light > main h1,
+.dashboard-theme-light > main h2 { color: #142238 !important; }
+.dashboard-theme-light > main .text-slate-400,
+.dashboard-theme-light > main .text-slate-500 { color: #647b8f !important; }
+.dashboard-theme-light .user-management-modern { background: #ffffff !important; border-color: #dbe6ef !important; box-shadow: 0 24px 70px rgba(38, 70, 98, .1) !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading { background: linear-gradient(115deg, #e7f5fa, #f8fbfd) !important; border-color: #dbe6ef !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading h2 { color: #142238 !important; }
+.dashboard-theme-light .user-management-modern .user-management-heading p,
+.dashboard-theme-light .user-management-modern .user-management-heading .record-count { color: #647b8f !important; }
+.dashboard-theme-light .user-management-modern .user-directory,
+.dashboard-theme-light .user-management-modern .role-access { background: #ffffff !important; border-color: #dbe6ef !important; }
+.dashboard-theme-light .user-management-modern .user-directory-heading,
+.dashboard-theme-light .user-management-modern .role-access .user-directory-heading { background: #f4f8fb !important; border-color: #dbe6ef !important; }
+.dashboard-theme-light .user-management-modern .user-directory-heading strong { color: #1f3349 !important; }
+.dashboard-theme-light .user-management-modern .user-directory-controls { background: #ffffff !important; border-color: #dbe6ef !important; }
+.dashboard-theme-light .user-management-modern .user-directory-controls .user-search,
+.dashboard-theme-light .user-management-modern .user-directory-controls input,
+.dashboard-theme-light .user-management-modern .user-directory-controls select,
+.dashboard-theme-light .user-management-modern .user-row-tools select,
+.dashboard-theme-light .user-management-modern .user-state-button,
+.dashboard-theme-light .user-management-modern .user-reset-button,
+.dashboard-theme-light .user-management-modern .user-edit-button,
+.dashboard-theme-light .user-management-modern .user-delete-button { background: #f7fafc !important; border-color: #dbe6ef !important; color: #4b6479 !important; }
+.dashboard-theme-light .user-management-modern .user-row { border-color: #e5edf3 !important; }
+.dashboard-theme-light .user-management-modern .user-row:hover { background: #f4f8fb !important; }
+.dashboard-theme-light .user-management-modern .user-identity strong,
+.dashboard-theme-light .user-management-modern .role-access-table td:first-child { color: #1f3349 !important; }
+.dashboard-theme-light .user-management-modern .user-identity > span:not(.user-role-label),
+.dashboard-theme-light .user-management-modern .role-access-table td { color: #647b8f !important; }
+.dashboard-theme-light .user-management-modern .role-access-table th { background: #f4f8fb !important; color: #647b8f !important; border-color: #dbe6ef !important; }
+.dashboard-theme-light .user-management-modern .role-access-table td { background: #ffffff !important; border-color: #e5edf3 !important; }
+.dashboard-theme-light .user-management-modern .user-management-footnote { color: #7890a2 !important; }
+.dashboard-theme-light .user-management-modern .user-add-trigger { background: #f4f8fb !important; border-color: #9fc5d4 !important; }
+@media (max-width: 620px) { .user-management-modern .user-management-heading-actions { gap: 8px; } .user-management-modern .user-management-heading-actions .record-count { display: none; } }
+
+/* Clean create-account popup for the live dashboard. */
+.user-create-modal-backdrop { background: rgba(3, 15, 28, .72) !important; backdrop-filter: blur(9px) !important; }
+.user-create-modal {
+  width: min(520px, calc(100vw - 32px)) !important;
+  padding: 28px !important;
+  border: 1px solid #dce7f0 !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+  box-shadow: 0 28px 90px rgba(0, 15, 35, .35) !important;
+}
+.user-create-modal .user-edit-modal-heading { margin-bottom: 22px !important; }
+.user-create-modal .user-edit-modal-heading strong { color: #162d4d !important; font-size: 20px !important; letter-spacing: -.02em; }
+.user-create-modal .user-edit-modal-heading small { margin-top: 6px !important; color: #71839a !important; font-size: 12px !important; }
+.user-create-modal .modal-close-button { display: grid; place-items: center; width: 36px; height: 36px; border: 0 !important; border-radius: 10px !important; background: #eef4f8 !important; color: #71839a !important; font-size: 20px; line-height: 1; cursor: pointer; }
+.user-create-modal .modal-close-button:hover { background: #e2edf4 !important; color: #1d3857 !important; }
+.user-create-modal-form { gap: 17px !important; }
+.user-create-modal-form label { color: #526b83 !important; font-size: 12px !important; font-weight: 700 !important; }
+.user-create-modal-form .required-mark { color: #e06b6b; }
+.user-create-modal-form input,
+.user-create-modal-form select { width: 100%; height: 42px; padding: 0 12px; border: 1px solid #d6e2eb !important; border-radius: 9px !important; outline: 0; background: #f8fbfd !important; color: #1b3553 !important; font-size: 13px; transition: .18s ease; }
+.user-create-modal-form input:focus,
+.user-create-modal-form select:focus { border-color: #28aeca !important; background: #ffffff !important; box-shadow: 0 0 0 3px rgba(40, 174, 202, .14) !important; }
+.user-create-modal-form input::placeholder { color: #9aabba; }
+.user-create-modal .user-edit-modal-actions { display: flex !important; justify-content: flex-end !important; align-items: center; gap: 10px !important; margin-top: 7px !important; padding-top: 6px; }
+.user-create-modal .user-edit-modal-actions > button { width: auto !important; min-width: 104px !important; height: 42px !important; min-height: 42px !important; margin: 0 !important; border-radius: 9px !important; font-size: 12px !important; }
+.user-create-modal .modal-cancel-button { border: 1px solid #d6e2eb !important; background: #ffffff !important; color: #5d7186 !important; }
+.user-create-modal .modal-cancel-button:hover { background: #f3f7fa !important; border-color: #b9ccd9 !important; }
+.user-create-modal .user-add-button { display: inline-flex !important; align-items: center; justify-content: center !important; gap: 9px !important; padding: 0 16px !important; border: 0 !important; background: #176b78 !important; color: #ffffff !important; font-size: 12px !important; font-weight: 750 !important; }
+.user-create-modal .user-add-button:hover { background: #0f5965 !important; transform: translateY(-1px); }
+.user-create-modal .user-add-button span { color: #9bf3f2 !important; font-size: 18px !important; line-height: 1; }
+.user-create-modal .user-feedback-error { margin-top: -3px; border-radius: 9px !important; background: #fff1f1 !important; color: #b84e59 !important; }
+@media (max-width: 520px) { .user-create-modal { padding: 22px !important; } .user-create-modal .user-edit-modal-actions { flex-direction: column-reverse; } .user-create-modal .user-edit-modal-actions > button { width: 100% !important; } }
+
+.dashboard-theme-light .user-create-modal { background: #ffffff !important; }
+
+/* Make account email addresses easy to read in every theme. */
+.user-management-modern .user-identity > span:last-child { font-size: 18px !important; line-height: 1.45 !important; }
+.dashboard-theme-light .user-management-modern .user-identity > span:last-child { color: #111827 !important; }
+.user-management-modern .user-identity strong { font-size: 20px !important; line-height: 1.35 !important; }
+.user-management-modern .user-identity .you-tag { margin-left: 8px; font-size: 13px !important; font-weight: 800 !important; letter-spacing: .04em; }
+.user-management-modern .user-role-label { font-size: 14px !important; }
+.user-management-modern .role-access .user-directory-heading strong { font-size: 20px !important; }
+.user-management-modern .role-access .user-directory-heading > span { font-size: 15px !important; }
+.user-management-modern .role-access-table th { font-size: 14px !important; letter-spacing: .08em; }
+.user-management-modern .role-access-table td { font-size: 18px !important; line-height: 1.5; }
+.user-management-modern .user-management-footnote { font-size: 16px !important; line-height: 1.5; }
+.dashboard-page-header p.text-sm { font-size: 20px !important; }
+.user-management-modern .user-management-heading h2 { font-size: 28px !important; }
+.user-management-modern .user-management-heading p { font-size: 19px !important; }
+.user-management-modern .user-management-heading .record-count { font-size: 16px !important; }
+.user-management-modern .user-directory-heading strong { font-size: 21px !important; }
+.user-management-modern .user-directory-heading > span { font-size: 16px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { font-size: 18px !important; }
+.user-management-modern .user-feedback { font-size: 14px !important; }
+.user-management-modern .user-row-tools select { min-height: 48px !important; font-size: 17px !important; line-height: 1.25 !important; }
+.user-management-modern .user-directory-controls select { font-size: 16px !important; }
+
+/* Keep the navigation rail dark in light mode for a stable application frame. */
+.dashboard-theme-light > aside {
+  background: #0a1724 !important;
+  border-color: #203447 !important;
+  color: #dbeafe !important;
+}
+.dashboard-theme-light > aside .border-slate-800 { border-color: #203447 !important; }
+.dashboard-theme-light > aside .bg-slate-900\/50 { background: #101f2e !important; }
+.dashboard-theme-light > aside .text-white { color: #f8fafc !important; }
+.dashboard-theme-light > aside .text-slate-200 { color: #dbeafe !important; }
+.dashboard-theme-light > aside .text-slate-600 { color: #60798d !important; }
+.dashboard-theme-light > aside .text-slate-500 { color: #7f99ac !important; }
+.dashboard-theme-light > aside .text-slate-400 { color: #8198ab !important; }
+.dashboard-theme-light > aside nav button { color: #7f99ac !important; }
+.dashboard-theme-light > aside nav button:hover { background: rgba(51, 65, 85, .7) !important; color: #dbeafe !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 { background: rgba(103, 232, 249, .12) !important; color: #a5f3fc !important; }
+.dashboard-theme-light > aside nav button.bg-cyan-300\/10 span { color: #67e8f9 !important; }
+.dashboard-theme-light > aside .bg-violet-300\/20 { background: rgba(196, 181, 253, .2) !important; color: #ddd6fe !important; }
+.dashboard-theme-light > aside .text-violet-200 { color: #ddd6fe !important; }
+.dashboard-theme-light > aside .hover\\:text-slate-200:hover { color: #dbeafe !important; }

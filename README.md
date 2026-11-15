@@ -30,10 +30,17 @@ The comparison trains balanced Logistic Regression and Random Forest baselines, 
 
 ## Run the API and dashboard
 
-Start the API:
+Start the credit-card scoring API:
 
 ```powershell
-.\.venv\Scripts\python.exe app.py
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+Start the authentication and user-management API in a second terminal. Configure
+`AUTH_BOOTSTRAP_EMAIL` and `AUTH_BOOTSTRAP_PASSWORD` in `.env` before first use.
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn backend.standalone_user_api:app --reload --port 8001
 ```
 
 In another terminal:

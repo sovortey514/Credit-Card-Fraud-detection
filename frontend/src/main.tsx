@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { AUTH_API_URL, AuthScreen, UserManagement, apiError, roleLabel, toSessionUser, type SessionUser } from './auth';
 import type { Language } from './i18n';
 import './style.css';
+import './tailwind.css';
+import LiveDashboard from './LiveDashboard';
 
 type Decision = 'APPROVED' | 'FLAGGED_BY_RULES' | 'FLAGGED_BY_ML';
 type Transaction = {
@@ -213,4 +215,4 @@ function App() {
   </div>;
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(<LiveDashboard />);

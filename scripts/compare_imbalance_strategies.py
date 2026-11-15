@@ -6,15 +6,18 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
+import tracemalloc
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import BorderlineSMOTE, SMOTE
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     average_precision_score,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
@@ -49,7 +52,6 @@ def make_model(name: str, strategy: str, positive_weight: float):
         return Pipeline([
             ("scaler", StandardScaler()),
             ("classifier", LogisticRegression(
-                penalty="l2",
                 class_weight="balanced" if weighted else None,
                 max_iter=1_000,
                 random_state=SEED,
@@ -78,15 +80,32 @@ def make_model(name: str, strategy: str, positive_weight: float):
     raise ValueError(f"Unknown model: {name}")
 
 
+def make_sampler(strategy: str):
+    """Create a sampler that is fitted only on the current training data."""
+    if strategy == "smote":
+        return SMOTE(sampling_strategy=0.1, random_state=SEED)
+    if strategy == "borderline_smote":
+        return BorderlineSMOTE(sampling_strategy=0.1, random_state=SEED)
+    if strategy == "class_weight":
+        return None
+    raise ValueError(f"Unknown imbalance strategy: {strategy}")
+
+
 def evaluate(model, X: pd.DataFrame, y: pd.Series) -> dict[str, float]:
     probabilities = model.predict_proba(X)[:, 1]
     predictions = probabilities >= 0.5
+    true_negative, false_positive, _, _ = confusion_matrix(
+        y, predictions, labels=[0, 1]
+    ).ravel()
     return {
         "average_precision": float(average_precision_score(y, probabilities)),
         "roc_auc": float(roc_auc_score(y, probabilities)),
         "precision_at_0_5": float(precision_score(y, predictions, zero_division=0)),
         "recall_at_0_5": float(recall_score(y, predictions, zero_division=0)),
         "f1_at_0_5": float(f1_score(y, predictions, zero_division=0)),
+        "false_positive_rate_at_0_5": float(
+            false_positive / (false_positive + true_negative)
+        ),
     }
 
 
@@ -114,23 +133,33 @@ def run(feature_set: str, model_names: list[str]) -> dict[str, object]:
         "training_fraud_count": positive,
         "training_legitimate_count": negative,
         "xgboost_scale_pos_weight": positive_weight,
-        "smote_sampling_strategy": 0.1,
+        "synthetic_sampling_strategy": 0.1,
+        "validation_and_test_sampling": "none",
         "validation_and_test_resampled": False,
         "models": {},
     }
 
-    for strategy in ("class_weight", "smote"):
-        if strategy == "smote":
-            sampler = SMOTE(sampling_strategy=0.1, random_state=SEED)
+    for strategy in ("class_weight", "smote", "borderline_smote"):
+        sampler = make_sampler(strategy)
+        fit_start = time.perf_counter()
+        if sampler is not None:
+            resample_start = time.perf_counter()
             X_fit_array, y_fit_array = sampler.fit_resample(X_train, y_train)
+            resample_seconds = time.perf_counter() - resample_start
             X_fit = pd.DataFrame(X_fit_array, columns=features)
             y_fit = pd.Series(y_fit_array, name=TARGET)
         else:
             X_fit, y_fit = X_train, y_train
+            resample_seconds = 0.0
 
         for model_name in model_names:
             model = make_model(model_name, strategy, positive_weight)
+            model_start = time.perf_counter()
+            tracemalloc.start()
             model.fit(X_fit, y_fit)
+            model_fit_seconds = time.perf_counter() - model_start
+            _, peak_memory = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
             key = f"{model_name}_{strategy}"
             results["models"][key] = {
                 "model": model_name,
@@ -138,6 +167,10 @@ def run(feature_set: str, model_names: list[str]) -> dict[str, object]:
                 "fit_rows": len(X_fit),
                 "fit_fraud_count": int(y_fit.sum()),
                 "fit_legitimate_count": int((y_fit == 0).sum()),
+                "resampling_seconds": float(resample_seconds),
+                "model_fit_seconds": float(model_fit_seconds),
+                "total_training_seconds": float(time.perf_counter() - fit_start),
+                "peak_traced_memory_mb": float(peak_memory / (1024 * 1024)),
                 "validation": evaluate(model, X_validation, y_validation),
                 "test": evaluate(model, X_test, y_test),
             }
@@ -162,13 +195,17 @@ def save_report(results: dict[str, object], feature_set: str) -> None:
             "model_strategy": key,
             "validation_average_precision": metrics["validation"]["average_precision"],
             "validation_roc_auc": metrics["validation"]["roc_auc"],
+            "validation_false_positive_rate": metrics["validation"]["false_positive_rate_at_0_5"],
             "test_average_precision": metrics["test"]["average_precision"],
             "test_roc_auc": metrics["test"]["roc_auc"],
+            "test_false_positive_rate": metrics["test"]["false_positive_rate_at_0_5"],
+            "total_training_seconds": metrics["total_training_seconds"],
+            "peak_traced_memory_mb": metrics["peak_traced_memory_mb"],
         })
     table = pd.DataFrame(rows)
     table.to_csv(REPORT_DIR / f"creditcard_imbalance_{feature_set.lower()}.csv", index=False)
 
-    figure, axes = plt.subplots(1, 2, figsize=(14, 5))
+    figure, axes = plt.subplots(1, 3, figsize=(19, 5))
     table.plot.bar(x="model_strategy", y="validation_average_precision", ax=axes[0], legend=False)
     axes[0].set_title("Validation Average Precision")
     axes[0].set_ylabel("Average precision")
@@ -177,6 +214,10 @@ def save_report(results: dict[str, object], feature_set: str) -> None:
     axes[1].set_title("Held-out Test Average Precision")
     axes[1].set_ylabel("Average precision")
     axes[1].tick_params(axis="x", rotation=35)
+    table.plot.bar(x="model_strategy", y="validation_false_positive_rate", ax=axes[2], legend=False)
+    axes[2].set_title("Validation False Positive Rate")
+    axes[2].set_ylabel("FPR at threshold 0.5")
+    axes[2].tick_params(axis="x", rotation=35)
     figure.tight_layout()
     figure.savefig(REPORT_DIR / f"creditcard_imbalance_{feature_set.lower()}.png", dpi=160)
     plt.close(figure)
