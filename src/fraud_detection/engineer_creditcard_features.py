@@ -72,8 +72,14 @@ def engineer_split_features(splits: dict[str, pd.DataFrame]) -> dict[str, pd.Dat
         raise ValueError(f"Splits must be provided in chronological order: {SPLITS}")
     for frame in splits.values():
         _require_columns(frame)
+        if frame.empty:
+            raise ValueError("Chronological splits must not be empty")
         if not frame["Time"].is_monotonic_increasing:
             raise ValueError("Each split must be sorted by Time before feature engineering")
+
+    for earlier, later in zip(SPLITS, SPLITS[1:]):
+        if splits[earlier]["Time"].iloc[-1] >= splits[later]["Time"].iloc[0]:
+            raise ValueError(f"{earlier} must end strictly before {later} begins")
 
     train_amount = splits["train"]["Amount"].astype(float).to_numpy()
     result: dict[str, pd.DataFrame] = {}
@@ -122,6 +128,9 @@ def main() -> None:
         ],
         "rolling_window_rows": ROLLING_WINDOW,
         "global_statistics_fit_split": "train",
+        "scaling": "Time and Amount scaled in the input splits using train-fitted RobustScalers; engineered features are not robust-scaled",
+        "inference_rolling_features_match": False,
+        "inference_rolling_features_note": "Offline features use evolving transaction history; the inference pipeline uses a fixed training reference. Models using these features require aligned preprocessing and retraining.",
         "rolling_order": "chronological; each row uses prior rows only for z-score and current-or-prior rows for percentile rank",
         "future_to_past_leakage": False,
         "rows": {name: len(frame) for name, frame in engineered.items()},

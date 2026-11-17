@@ -1,0 +1,12 @@
+{
+  "status": "complete",
+  "completed_utc": "2026-11-15T14:43:40.914787+00:00",
+  "prediction_passes_per_artifact": 1,
+  "output_sha256": {
+    "FINAL_TABLES.md": "9aa81fa8bfc44616b6488a8eb390ba551a065b3b22793496efbc569566ba27c4",
+    "frozen_manifest.json": "e2362093353b8a126031600e2c1182e61158b827ab1f281cb8b041c340895372",
+    "metrics.csv": "0eed863aecda2f8354510f959accbdf1bb4698cfb841a26eba324c500d289f55",
+    "metrics.json": "89a34a0d7c831838e00ce2edbc24f7b7ab08d10002bc5808ca4b97dbaa344eb8",
+    "predictions.npz": "9ceecdb6fc3052463e09fa37b3ece07472d7a4f586b64d0372a4bfd8f18d30c9"
+  }
+}

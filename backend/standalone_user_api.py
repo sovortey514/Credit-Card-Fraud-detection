@@ -243,7 +243,11 @@ def authorize(authorization: str | None) -> tuple[dict[str, Any], str]:
     with connection() as conn:
         if conn.execute("SELECT 1 FROM revoked_access_tokens WHERE jti=?", (payload["jti"],)).fetchone():
             raise HTTPException(401, "Access token has been revoked")
-    user = row_user(get_user(int(payload["sub"])))
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError) as error:
+        raise HTTPException(401, "Invalid access token") from error
+    user = row_user(get_user(user_id))
     if not user or not user["is_active"]:
         raise HTTPException(401, "User is inactive or no longer exists")
     return user, payload["jti"]
@@ -278,6 +282,11 @@ def admin_only(user: User) -> dict[str, Any]:
 
 
 CanManageUsers = Annotated[dict[str, Any], Depends(admin_only)]
+
+
+def protect_super_admin(actor: dict[str, Any], target: dict[str, Any]) -> None:
+    if target["role"] == "super_admin" and actor["role"] != "super_admin":
+        raise HTTPException(403, "Only a super admin can manage a super admin")
 
 
 class APIModel(BaseModel):
@@ -532,11 +541,20 @@ def create_user(payload: ManagedUser, user: CanManageUsers) -> dict[str, Any]:
     return {"user": row_user(get_user(user_id))}
 
 
+@app.get("/api/v1/users/{user_id}")
+def read_user(user_id: int, user: CanManageUsers) -> dict[str, Any]:
+    target = get_user(user_id)
+    if not target:
+        raise HTTPException(404, "User not found")
+    return {"user": row_user(target)}
+
+
 @app.patch("/api/v1/users/{user_id}")
 def update_user(user_id: int, payload: UserPatch, user: CanManageUsers) -> dict[str, Any]:
     target = get_user(user_id)
     if not target:
         raise HTTPException(404, "User not found")
+    protect_super_admin(user, target)
     changes = payload.model_dump(exclude_none=True)
     if not changes:
         raise HTTPException(422, "At least one user field is required")
@@ -555,8 +573,10 @@ def update_user(user_id: int, payload: UserPatch, user: CanManageUsers) -> dict[
 
 @app.post("/api/v1/users/{user_id}/activate")
 def activate_user(user_id: int, user: CanManageUsers) -> dict[str, Any]:
-    if not get_user(user_id):
+    target = get_user(user_id)
+    if not target:
         raise HTTPException(404, "User not found")
+    protect_super_admin(user, target)
     with connection() as conn:
         conn.execute("UPDATE users SET is_active=1,updated_at=? WHERE id=?", (timestamp(), user_id))
     write_audit(user["id"], "user_activated", user_id)
@@ -567,8 +587,10 @@ def activate_user(user_id: int, user: CanManageUsers) -> dict[str, Any]:
 def deactivate_user(user_id: int, user: CanManageUsers) -> dict[str, Any]:
     if user_id == user["id"]:
         raise HTTPException(400, "You cannot deactivate your own account")
-    if not get_user(user_id):
+    target = get_user(user_id)
+    if not target:
         raise HTTPException(404, "User not found")
+    protect_super_admin(user, target)
     with connection() as conn:
         conn.execute("UPDATE users SET is_active=0,updated_at=? WHERE id=?", (timestamp(), user_id))
         conn.execute("UPDATE refresh_tokens SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (timestamp(), user_id))
@@ -578,8 +600,10 @@ def deactivate_user(user_id: int, user: CanManageUsers) -> dict[str, Any]:
 
 @app.post("/api/v1/users/{user_id}/reset-password")
 def admin_reset_password(user_id: int, payload: Password, user: CanManageUsers) -> dict[str, str]:
-    if not get_user(user_id):
+    target = get_user(user_id)
+    if not target:
         raise HTTPException(404, "User not found")
+    protect_super_admin(user, target)
     with connection() as conn:
         conn.execute("UPDATE users SET password_hash=?,updated_at=? WHERE id=?", (hash_password.hash(payload.password), timestamp(), user_id))
         conn.execute("UPDATE refresh_tokens SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", (timestamp(), user_id))
@@ -594,6 +618,7 @@ def delete_user(user_id: int, user: CanManageUsers) -> dict[str, str]:
     target = get_user(user_id)
     if not target:
         raise HTTPException(404, "User not found")
+    protect_super_admin(user, target)
     if target["role"] == "super_admin":
         with connection() as conn:
             active_admins = conn.execute("SELECT COUNT(*) AS n FROM users WHERE role='super_admin' AND is_active=1").fetchone()["n"]

@@ -17,12 +17,23 @@ services:
 
   api:
     build: .
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
+      - ./reports:/app/reports:ro
+
+  auth:
+    build: .
+    command: ["uvicorn", "backend.standalone_user_api:app", "--host", "0.0.0.0", "--port", "8001"]
     restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
     ports:
-      - "5000:5000"
+      - "8001:8001"
     environment:
       PYTHONUNBUFFERED: "1"
       MYSQL_HOST: mysql
@@ -30,8 +41,19 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-transfer-root-password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-fraud_detection}
-    volumes:
-      - ./:/app
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Set AUTH_JWT_SECRET in .env}
+      AUTH_BOOTSTRAP_EMAIL: ${AUTH_BOOTSTRAP_EMAIL:-}
+      AUTH_BOOTSTRAP_PASSWORD: ${AUTH_BOOTSTRAP_PASSWORD:-}
+      AUTH_BOOTSTRAP_ROLE: ${AUTH_BOOTSTRAP_ROLE:-admin}
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+      - auth
 
 volumes:
   mysql_data:

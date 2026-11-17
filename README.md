@@ -13,12 +13,15 @@ Research and application code for imbalanced credit-card fraud detection using t
 .\.venv\Scripts\python.exe scripts/verify_data.py
 .\.venv\Scripts\python.exe -m src.fraud_detection.eda
 .\.venv\Scripts\python.exe -m src.fraud_detection.prepare_creditcard
-.\.venv\Scripts\python.exe -m src.fraud_detection.engineer_creditcard_features
+.\.venv\Scripts\python.exe -m src.fraud_detection.diagram_preprocessing
 ```
 
 Preparation sorts by time, removes duplicate rows, creates chronological train/validation/test partitions, fits scaling on training data only, and writes Parquet files and audit metadata under `data/processed/`.
+The diagram-aligned feature pipeline then saves engineered splits and its fitted preprocessor under `data/diagram_aligned/`.
 
 ## Fit preprocessing and compare models
+
+**Legacy workflow:** the scripts below use the original research-feature datasets and existing model format. They do not train or evaluate the diagram-aligned dataset; update them and retrain models before using the new features for inference. Previously reported results and models are preserved as historical artifacts.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/fit_creditcard_preprocessing.py
@@ -62,3 +65,7 @@ The API requires the trained model and preprocessing artifacts under `models/`. 
 ## Research limitation
 
 The ULB dataset is anonymized and has no explicit payment-channel field. Findings apply to this dataset; they cannot establish CNP-specific performance or performance on real bank transactions.
+
+## Final evaluation and thesis chapters
+
+The [Week 18 record](docs/WEEK18_FINAL_EVALUATION.md) links the [final metric tables](reports/final/FINAL_TABLES.md), [Chapter 5: Empirical Results](docs/CHAPTER_5_EMPIRICAL_RESULTS.md), and [Chapter 6: Discussion and Limitations](docs/CHAPTER_6_DISCUSSION_LIMITATIONS.md). Eleven frozen artifacts were evaluated once for this run. The chronological test partition had already been exposed in earlier reports, so it cannot be described as previously untouched. No frozen operating point reached 85% test recall.

@@ -623,6 +623,10 @@ td, .transaction-id, .score-number { font-size: 11px; }
 .user-edit-modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #344a49; font-size: 14px; }
 .user-edit-modal label { display: grid; gap: 6px; color: #4c605a; font-size: 11px; font-weight: 600; }
 .user-edit-modal input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid #dce4df; border-radius: 3px; color: #314547; background: #fff; font-size: 12px; }
+.user-edit-modal .user-edit-modal-heading strong { font-size: 20px; line-height: 1.4; }
+.user-edit-modal label { font-size: 15px; line-height: 1.5; }
+.user-edit-modal input { min-height: 44px; font-size: 16px; }
+.user-edit-modal .user-edit-modal-actions > button { min-height: 42px; height: auto; padding: 8px 16px; font-size: 15px; line-height: 1.5; }
 .modal-close-button { width: 28px; height: 28px; border: 0; color: #758781; background: transparent; cursor: pointer; font-size: 22px; line-height: 1; }
 .user-edit-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; }
 .modal-cancel-button, .modal-update-button { min-width: 76px; height: 34px; padding: 0 12px; border-radius: 3px; cursor: pointer; font-size: 11px; font-weight: 600; }
@@ -1882,6 +1886,9 @@ body { color: var(--page-text) !important; }
 .delete-confirmation-actions .modal-cancel-button { border: 1px solid var(--page-border); background: var(--page-surface-2); color: var(--page-muted); }
 .delete-confirmation-actions .delete-confirm-button { border: 0; background: #bf5b5b; color: #fff; }
 .delete-confirmation-actions .delete-confirm-button:hover { background: #aa4c4c; }
+.delete-confirmation-modal h2 { font-size: 21px; line-height: 1.35; }
+.delete-confirmation-modal p { font-size: 15px; line-height: 1.6; }
+.delete-confirmation-actions button { min-width: 116px; width: auto; min-height: 44px; height: auto; padding: 8px 18px; font-size: 15px; line-height: 1.5; }
 
 /* Reset and activation dialogs share the same clean modal language. */
 .hybrid-dashboard .user-reset-modal-backdrop,
@@ -2371,9 +2378,14 @@ body { color: var(--page-text) !important; }
 .user-management-modern .user-directory-controls input { border: 0 !important; }
 .user-management-modern .user-directory-controls input::placeholder { color: #6f8798 !important; }
 .user-management-modern .user-directory-controls select { min-width: 112px; padding: 0 9px; }
-.user-management-modern .user-row { grid-template-columns: 38px minmax(150px, 1fr) minmax(360px, auto) !important; gap: 12px !important; padding: 15px 17px !important; border-bottom: 1px solid #1b3041 !important; }
+.user-management-modern .user-row { grid-template-columns: 38px minmax(150px, 1fr) minmax(360px, auto) !important; min-height: 0; gap: 10px !important; padding: 10px 17px !important; border-bottom: 1px solid #1b3041 !important; }
+.user-management-modern .user-identity { gap: 2px; }
+.user-management-modern .user-directory { overflow: hidden; border-radius: 12px; }
+.user-management-modern .user-directory > .user-directory-heading { border-top-left-radius: 11px; border-top-right-radius: 11px; }
+.user-management-modern .user-list .user-row:last-child { border-bottom: 0 !important; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px; }
 .user-management-modern .user-row:hover { background: #102638 !important; }
 .user-management-modern .user-avatar { background: rgba(103, 232, 249, .14) !important; color: #a5f3fc !important; }
+.dashboard-theme-light .user-management-modern .user-avatar { background: #c3e5ec !important; color: #07556b !important; }
 .user-management-modern .user-identity strong { color: #f1f5f9 !important; font-size: 12px; }
 .user-management-modern .user-identity > span:not(.user-role-label) { color: #7f99ac !important; font-size: 10px; }
 .user-management-modern .user-role-label { width: fit-content; margin-top: 4px; background: rgba(103, 232, 249, .1) !important; color: #67e8f9 !important; }
@@ -2450,6 +2462,10 @@ body { color: var(--page-text) !important; }
 .dashboard-theme-light .user-management-modern .user-reset-button,
 .dashboard-theme-light .user-management-modern .user-edit-button,
 .dashboard-theme-light .user-management-modern .user-delete-button { background: #f7fafc !important; border-color: #dbe6ef !important; color: #4b6479 !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools .user-edit-button { background: #e6f6ec !important; border-color: #9acfb0 !important; color: #167044 !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools .user-edit-button:hover { background: #d3efdd !important; border-color: #409968 !important; color: #0c5732 !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools .user-delete-button { background: #fff0f0 !important; border-color: #e7b3b3 !important; color: #b4232e !important; }
+.dashboard-theme-light .user-management-modern .user-row-tools .user-delete-button:hover:not(:disabled) { background: #ffdddd !important; border-color: #c95656 !important; color: #8e1620 !important; }
 .dashboard-theme-light .user-management-modern .user-row { border-color: #e5edf3 !important; }
 .dashboard-theme-light .user-management-modern .user-row:hover { background: #f4f8fb !important; }
 .dashboard-theme-light .user-management-modern .user-identity strong,
@@ -2540,3 +2556,101 @@ body { color: var(--page-text) !important; }
 .dashboard-theme-light > aside .bg-violet-300\/20 { background: rgba(196, 181, 253, .2) !important; color: #ddd6fe !important; }
 .dashboard-theme-light > aside .text-violet-200 { color: #ddd6fe !important; }
 .dashboard-theme-light > aside .hover\\:text-slate-200:hover { color: #dbeafe !important; }
+
+/* Balanced user-management typography. */
+.user-management-modern .user-management-heading h2 { font-size: 22px !important; }
+.user-management-modern .user-management-heading p { font-size: 15px !important; }
+.user-management-modern .user-directory-heading strong { font-size: 17px !important; }
+.user-management-modern .user-directory-heading > span { font-size: 13px !important; }
+.user-management-modern .user-directory-controls input,
+.user-management-modern .user-directory-controls select { font-size: 14px !important; }
+.user-management-modern .user-identity strong { font-size: 16px !important; }
+.user-management-modern .user-identity > span:last-child { font-size: 14px !important; }
+.user-management-modern .user-identity .you-tag { font-size: 11px !important; }
+.user-management-modern .user-role-label { font-size: 12px !important; }
+.user-management-modern .user-row-tools select { font-size: 14px !important; }
+.user-management-modern .role-access-table th { font-size: 12px !important; }
+.user-management-modern .role-access-table td { font-size: 15px !important; }
+.user-management-modern .user-management-footnote { font-size: 13px !important; }
+.dashboard-page-header p.text-sm { font-size: 16px !important; }
+
+/* Clean spacing for the two-row dashboard header controls. */
+.dashboard-header-actions { gap: 7px !important; }
+.dashboard-header-utility,
+.dashboard-header-run { gap: 7px !important; }
+.dashboard-language-switch { padding: 2px !important; }
+.dashboard-language-switch button,
+.dashboard-theme-switch { height: 30px !important; }
+.dashboard-theme-switch { gap: 6px; padding: 0 9px !important; }
+.dashboard-header-utility > button,
+.dashboard-header-run > select,
+.dashboard-header-run > button { min-height: 34px !important; }
+.dashboard-header-run > select { min-width: 118px; }
+.dashboard-header-run > button { min-width: 100px; }
+
+.sidebar-logout {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #294256;
+  border-radius: 9px;
+  background: #101f2e;
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .18s ease;
+}
+.sidebar-logout:hover { border-color: #fb7185; background: rgba(251, 113, 133, .12); color: #fecdd3; }
+.mobile-logout { display: none; margin: 16px 20px 0 auto; padding: 8px 14px; border: 1px solid #b45360; border-radius: 8px; color: #b4232e; background: #fff; font-weight: 700; }
+@media (max-width: 1023px) { .mobile-logout { display: block; } }
+.dashboard-sidebar-bottom .text-\[10px\] { font-size: 12px !important; }
+.dashboard-sidebar-bottom .text-\[11px\] { font-size: 13px !important; }
+.dashboard-sidebar-bottom .text-xs { font-size: 14px !important; }
+.dashboard-sidebar-bottom .sidebar-logout { font-size: 14px; }
+.dashboard-theme-light > aside .sidebar-logout { border-color: #294256 !important; background: #101f2e !important; color: #fda4af !important; }
+.dashboard-theme-light > aside .sidebar-logout:hover { border-color: #fb7185 !important; background: rgba(251, 113, 133, .12) !important; color: #fecdd3 !important; }
+
+/* Login palette matches the dashboard's navy surfaces and cyan accents. */
+.auth-shell { background: #08131f !important; color: #e2e8f0 !important; }
+.auth-story { background: radial-gradient(ellipse at 80% 85%, #123a4c 0, transparent 48%), linear-gradient(145deg, #0a1724, #102638) !important; }
+.auth-story::after { border-color: rgba(103, 232, 249, .16); box-shadow: 0 0 0 48px rgba(103, 232, 249, .035), 0 0 0 96px rgba(103, 232, 249, .025); }
+.auth-brand .brand-mark { background: #67e8f9 !important; color: #08131f !important; }
+.auth-brand .brand-name { color: #f8fafc !important; }
+.auth-brand .brand-name span, .auth-story-copy h1 span { color: #67e8f9 !important; }
+.auth-story-copy h1 { color: #f8fafc !important; }
+.auth-story-copy p, .auth-story-footer { color: #b7cbd8 !important; }
+.auth-kicker, .auth-step { color: #67e8f9 !important; }
+.auth-panel { background: #0d1d2c !important; border-color: #203447 !important; }
+.auth-panel h2 { color: #f8fafc !important; }
+.auth-panel .auth-subtitle, .auth-panel .auth-footer { color: #a8bed0 !important; }
+.auth-form label { color: #cbdbe6 !important; }
+.auth-form input, .password-reset-form input { background: #101f2e !important; border: 1px solid #38546a !important; color: #f1f5f9 !important; }
+.auth-form input:focus, .password-reset-form input:focus { border-color: #67e8f9 !important; box-shadow: 0 0 0 3px rgba(103, 232, 249, .18) !important; }
+.auth-form button { background: #67e8f9 !important; color: #08131f !important; }
+.auth-form button:hover:not(:disabled) { background: #a5f3fc !important; }
+.auth-form button span { color: #08131f !important; }
+.auth-panel .text-button, .auth-footer span { color: #67e8f9 !important; }
+
+/* Compact and evenly spaced account-row controls. */
+.user-management-modern .user-row-tools { gap: 8px !important; }
+.user-management-modern .user-row-tools select {
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 11px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+}
+.user-management-modern .user-state-button,
+.user-management-modern .user-reset-button,
+.user-management-modern .user-edit-button,
+.user-management-modern .user-delete-button {
+  min-height: 34px !important;
+  height: 34px !important;
+  font-size: 12px !important;
+}
+.user-management-modern .user-state-button { padding: 0 11px !important; }
+.user-management-modern .user-row-tools .user-state-button { font-size: 15px !important; line-height: 1.5; min-height: 40px !important; height: auto !important; padding: 5px 12px !important; white-space: nowrap; }
+.user-management-modern .user-row-tools .user-reset-button { font-size: 18px !important; }
+.user-management-modern .user-row-tools .user-edit-button svg,
+.user-management-modern .user-row-tools .user-delete-button svg { width: 19px; height: 19px; }

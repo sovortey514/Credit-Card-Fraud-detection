@@ -23,7 +23,46 @@ export function roleLabel(role: SessionUser['role'], language: Language): string
   return ({ admin: 'Risk Manager / Admin', analyst: 'Fraud Analyst', customer: 'Cardholder / Customer', compliance: 'Compliance Officer' })[normalized];
 }
 
-export const AUTH_API_URL = 'http://localhost:8001';
+export const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL ?? 'http://localhost:8001').replace(/\/$/, '');
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = sessionStorage.getItem('transferguard-refresh-token');
+  if (!refreshToken) return null;
+  try {
+    const response = await fetch(`${AUTH_API_URL}/api/v1/auth/refresh`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as { access_token: string; refresh_token: string; user: ApiUser };
+    sessionStorage.setItem('transferguard-token', data.access_token);
+    sessionStorage.setItem('transferguard-refresh-token', data.refresh_token);
+    sessionStorage.setItem('transferguard-user', JSON.stringify(toSessionUser(data.user)));
+    window.dispatchEvent(new Event('transferguard-session-updated'));
+    return data.access_token;
+  } catch { return null; }
+}
+
+export async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const token = sessionStorage.getItem('transferguard-token');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  let response = await fetch(input, { ...init, headers });
+  if (response.status !== 401) return response;
+  refreshInFlight ??= refreshAccessToken().finally(() => { refreshInFlight = null; });
+  const renewed = await refreshInFlight;
+  if (renewed) {
+    headers.set('Authorization', `Bearer ${renewed}`);
+    response = await fetch(input, { ...init, headers });
+  } else {
+    sessionStorage.removeItem('transferguard-token');
+    sessionStorage.removeItem('transferguard-refresh-token');
+    sessionStorage.removeItem('transferguard-user');
+    window.dispatchEvent(new Event('transferguard-session-updated'));
+  }
+  return response;
+}
 type ApiRole = 'super_admin' | 'admin' | 'user';
 type ApiUser = { id: number; name: string; email: string; role: ApiRole; is_active: boolean; created_at: string; updated_at: string; last_login_at?: string | null };
 
@@ -100,9 +139,9 @@ export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
           <span className="brand-name">Transfer<span>Guard</span></span>
         </a>
         <div className="auth-story-copy">
-          <span className="auth-kicker">CREDIT CARD FRAUD · RESEARCH WORKSPACE</span>
-          <h1>Study the signal.<br /><span>Question the score.</span></h1>
-          <p>A private workspace for exploring credit-card fraud patterns and reviewing model explanations.</p>
+          <span className="auth-kicker">{t.loginEyebrow}</span>
+          <h1>{t.sloganOne}<br /><span>{t.sloganTwo}</span></h1>
+          <p>{t.loginDescription}</p>
         </div>
         <div className="auth-story-footer"><span className="story-dot" />LOCAL RESEARCH ENVIRONMENT<span className="story-divider" />CREDIT CARD DATASET</div>
       </section>
@@ -118,7 +157,7 @@ export function AuthScreen({ language, onAuthenticate }: AuthScreenProps) {
             {error && <div className="auth-error" role="alert">{error}</div>}
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? t.openingWorkspace : t.enterDemo}<span aria-hidden="true">↗</span></button>
           </form>
-<div className="password-reset-entry"><button type="button" className="text-button" onClick={() => { setResetOpen(!resetOpen); setError(''); setResetNotice(''); }}>Forgot password?</button>{resetOpen && <form className="password-reset-form" onSubmit={submitReset}><input type="email" placeholder="Account email" value={email} onChange={(event) => setEmail(event.target.value)} required /><button type="button" onClick={() => void requestReset()}>Generate reset token</button>{resetToken && <input type="text" placeholder="Reset token" value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />}<input type="password" placeholder="New password (12+ characters)" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} minLength={12} required /><button type="submit">Reset password</button>{resetNotice && <small>{resetNotice}</small>}</form>}</div>
+<div className="password-reset-entry"><button type="button" className="text-button" onClick={() => { setResetOpen(!resetOpen); setError(''); setResetNotice(''); }}>Forgot password?</button>{resetOpen && <form className="password-reset-form" onSubmit={submitReset}><input type="email" placeholder="Account email" value={email} onChange={(event) => setEmail(event.target.value)} required /><button type="button" onClick={() => void requestReset()}>Generate reset token</button>{resetToken && <input type="text" placeholder="Reset token" value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />}<input type="password" placeholder={language === 'km' ? 'ពាក្យសម្ងាត់ថ្មី (យ៉ាងតិច ១២ តួអក្សរ)' : 'New password (12+ characters)'} value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} minLength={12} required /><button type="submit">Reset password</button>{resetNotice && <small>{resetNotice}</small>}</form>}</div>
           
         </div>
         <footer className="auth-footer">TransferGuard <span>·</span> {t.researchPrototype}</footer>
@@ -134,10 +173,10 @@ type UserManagementProps = {
 
 export function UserManagement({ currentUser, language, token }: UserManagementProps & { language: Language }) {
   const t = getMessages(language);
-  const [users, setUsers] = useState<SessionUser[]>(() => DEMO_USERS.map((user) => ({ ...user })));
+  const [users, setUsers] = useState<SessionUser[]>([]);
   const authHeaders = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
   async function loadUsers() {
-    const response = await fetch(`${AUTH_API_URL}/api/v1/users?skip=0&limit=200`, { headers: authHeaders });
+    const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users?skip=0&limit=200`, { headers: authHeaders });
     if (!response.ok) throw await apiError(response, 'Unable to load users');
     const data = await response.json() as { items: ApiUser[] };
     setUsers(data.items.map(toSessionUser));
@@ -169,7 +208,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
     setNotice('');
     try {
       if (password.length < 12) throw new Error(t.passwordTooShort);
-      const response = await fetch(`${AUTH_API_URL}/api/v1/users`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role: toApiRole(role) }) });
+      const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password, role: toApiRole(role) }) });
       if (!response.ok) throw await apiError(response, 'Unable to create user');
       const created = toSessionUser((await response.json() as { user: ApiUser }).user);
       setUsers((current) => [...current, created]);
@@ -193,7 +232,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       const nextRole = patch.role ?? target.role;
       const nextActive = patch.active ?? target.active;
       if (userId === currentUser.id && !nextActive) throw new Error(t.noSelfDeactivate);
-      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ role: toApiRole(nextRole), is_active: nextActive }) });
+      const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ role: toApiRole(nextRole), is_active: nextActive }) });
       if (!response.ok) throw await apiError(response, 'Unable to update user');
       const updated = toSessionUser((await response.json() as { user: ApiUser }).user);
       setUsers((current) => current.map((user) => user.id === userId ? updated : user));
@@ -230,7 +269,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       return;
     }
     try {
-      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ name: nextName, email: nextEmail }) });
+      const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ name: nextName, email: nextEmail }) });
       if (!response.ok) throw await apiError(response, 'Unable to update user');
       const updatedUser = toSessionUser((await response.json() as { user: ApiUser }).user);
       setUsers((current) => current.map((user) => user.id === userId ? updatedUser : user));
@@ -254,7 +293,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
       return;
     }
     try {
-      const response = await fetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'DELETE', headers: authHeaders });
+      const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users/${userId}`, { method: 'DELETE', headers: authHeaders });
       if (response.status === 404) {
         await loadUsers();
         setPendingDeleteId(null);
@@ -272,7 +311,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
 
   async function resetAccountPassword() {
     if (!resetUserId) return;
-    try { const response = await fetch(`${AUTH_API_URL}/api/v1/users/${resetUserId}/reset-password`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ password: resetNewPassword }) }); if (!response.ok) throw await apiError(response, 'Unable to reset password'); setResetUserId(null); setResetNewPassword(''); setNotice('Password updated successfully.'); } catch (caught) { setError(caught instanceof Error ? caught.message : String(caught)); }
+    try { const response = await authenticatedFetch(`${AUTH_API_URL}/api/v1/users/${resetUserId}/reset-password`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ password: resetNewPassword }) }); if (!response.ok) throw await apiError(response, 'Unable to reset password'); setResetUserId(null); setResetNewPassword(''); setNotice('Password updated successfully.'); } catch (caught) { setError(caught instanceof Error ? caught.message : String(caught)); }
   }
 
   const filteredUsers = useMemo(() => {
@@ -300,7 +339,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
           <div className="user-directory-heading"><div className="directory-title"><strong>{t.workspaceDirectory}</strong><span className="directory-edit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg></span></div><span>{users.length} {t.account}</span></div>          <div className="user-directory-controls"><label className="user-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search users..." value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label><select aria-label="Filter by role" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}><option value="all">All roles</option><option value="super_admin">Super Admin</option><option value="admin">Risk Manager / Admin</option><option value="user">Standard User</option></select><select aria-label="Filter by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
           {error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}
           {notice && <div className="user-feedback" role="status">{notice}</div>}
-          {filteredUsers.length === 0 ? <div className="user-empty">{users.length === 0 ? t.noDemoAccounts : "No matching users found."}</div> : (
+          {filteredUsers.length === 0 ? <div className="user-empty">{error ? 'Unable to load accounts.' : 'No matching users found.'}</div> : (
             <div className="user-list">
               {filteredUsers.map((user) => (
                 <article className="user-row" key={user.id}>
@@ -329,7 +368,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
         <div className="delete-confirmation-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingDeleteId(null); }}>
           <div className="delete-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirmation-title">
             <div className="delete-confirmation-icon">!</div>
-            <div><h2 id="delete-confirmation-title">Delete account?</h2><p>Are you sure you want to delete <strong>{pendingDeleteUser.name}</strong>? This action cannot be undone.</p></div>
+            <div><h2 id="delete-confirmation-title">{t.deleteQuestion}</h2><p>{language === 'km' ? 'តើអ្នកប្រាកដថាចង់លុបគណនី' : 'Are you sure you want to delete'} <strong>{pendingDeleteUser.name}</strong>? {language === 'km' ? 'សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។' : 'This action cannot be undone.'}</p></div>
             <div className="delete-confirmation-actions"><button type="button" className="modal-cancel-button" onClick={() => setPendingDeleteId(null)}>{t.cancel}</button><button type="button" className="delete-confirm-button" onClick={() => deleteAccount(pendingDeleteUser.id)}>{t.delete}</button></div>
           </div>
         </div>
@@ -338,12 +377,12 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
         <div className="delete-confirmation-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setPendingStatusChange(null); }}>
           <div className="delete-confirmation-modal status-confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="status-confirmation-title">
             <div className="status-confirmation-icon">↻</div>
-            <div><h2 id="status-confirmation-title">{pendingStatusChange.nextActive ? 'Activate account?' : 'Deactivate account?'}</h2><p>{pendingStatusChange.nextActive ? 'This account will be able to sign in and access its assigned workspace.' : 'This account will no longer be able to sign in until it is activated again.'}</p></div>
-            <div className="delete-confirmation-actions"><button type="button" className="modal-cancel-button" onClick={() => setPendingStatusChange(null)}>{t.cancel}</button><button type="button" className="status-confirm-button" onClick={() => { updateAccount(pendingStatusUser.id, { active: pendingStatusChange.nextActive }); setPendingStatusChange(null); }}>{pendingStatusChange.nextActive ? 'Activate' : 'Deactivate'}</button></div>
+            <div><h2 id="status-confirmation-title">{pendingStatusChange.nextActive ? (language === 'km' ? 'បើកដំណើរការគណនី?' : 'Activate account?') : (language === 'km' ? 'បិទដំណើរការគណនី?' : 'Deactivate account?')}</h2><p>{pendingStatusChange.nextActive ? (language === 'km' ? 'គណនីនេះនឹងអាចចូលប្រើកន្លែងធ្វើការដែលបានកំណត់។' : 'This account will be able to sign in and access its assigned workspace.') : (language === 'km' ? 'គណនីនេះនឹងមិនអាចចូលបានទេ រហូតដល់បើកដំណើរការឡើងវិញ។' : 'This account will no longer be able to sign in until it is activated again.')}</p></div>
+            <div className="delete-confirmation-actions"><button type="button" className="modal-cancel-button" onClick={() => setPendingStatusChange(null)}>{t.cancel}</button><button type="button" className="status-confirm-button" onClick={() => { updateAccount(pendingStatusUser.id, { active: pendingStatusChange.nextActive }); setPendingStatusChange(null); }}>{pendingStatusChange.nextActive ? (language === 'km' ? 'បើកដំណើរការ' : 'Activate') : (language === 'km' ? 'បិទដំណើរការ' : 'Deactivate')}</button></div>
           </div>
         </div>
       )}
-      {createOpen && (<div className="user-create-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setCreateOpen(false); }}><div className="user-create-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-title"><div className="user-edit-modal-heading"><div><strong id="create-user-title">{t.createAccount}</strong><small>Create a role-based dashboard account</small></div><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={() => setCreateOpen(false)}>×</button></div><form className="user-create-modal-form" onSubmit={createAccount}><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} required maxLength={100} /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} /></label><label><span>{t.temporaryPassword}<span className="required-mark" aria-hidden="true"> *</span></span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={12} maxLength={200} /></label><label>{t.role}<select value={role} onChange={(event) => setRole(event.target.value as SessionUser['role'])}><option value="super_admin">Super Admin</option><option value="admin">{t.administrator}</option><option value="analyst">Standard User</option></select></label>{error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}<div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setCreateOpen(false)}>{t.cancel}</button><button type="submit" className="user-add-button">{t.createAccount}<span aria-hidden="true">+</span></button></div></form></div></div>)}      {resetUserId && (<div className="user-reset-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setResetUserId(null); }}><div className="user-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-user-title"><div className="user-edit-modal-heading"><strong id="reset-user-title">Reset password</strong><button type="button" className="modal-close-button" onClick={() => setResetUserId(null)}>×</button></div><p>Set a new password for this account.</p><input type="password" autoFocus minLength={12} placeholder="New password (12+ characters)" value={resetNewPassword} onChange={(event) => setResetNewPassword(event.target.value)} /><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setResetUserId(null)}>Cancel</button><button type="button" className="modal-update-button" onClick={() => void resetAccountPassword()}>Update password</button></div></div></div>)}
+      {createOpen && (<div className="user-create-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setCreateOpen(false); }}><div className="user-create-modal" role="dialog" aria-modal="true" aria-labelledby="create-user-title"><div className="user-edit-modal-heading"><div><strong id="create-user-title">{t.createAccount}</strong><small>Create a role-based dashboard account</small></div><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={() => setCreateOpen(false)}>×</button></div><form className="user-create-modal-form" onSubmit={createAccount}><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} required maxLength={100} /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} /></label><label><span>{t.temporaryPassword}<span className="required-mark" aria-hidden="true"> *</span></span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={12} maxLength={200} /></label><label>{t.role}<select value={role} onChange={(event) => setRole(event.target.value as SessionUser['role'])}><option value="super_admin">Super Admin</option><option value="admin">{t.administrator}</option><option value="analyst">Standard User</option></select></label>{error && <div className="user-feedback user-feedback-error" role="alert">{error}</div>}<div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setCreateOpen(false)}>{t.cancel}</button><button type="submit" className="user-add-button">{t.createAccount}<span aria-hidden="true">+</span></button></div></form></div></div>)}      {resetUserId && (<div className="user-reset-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setResetUserId(null); }}><div className="user-reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-user-title"><div className="user-edit-modal-heading"><strong id="reset-user-title">{language === 'km' ? 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ' : 'Reset password'}</strong><button type="button" className="modal-close-button" onClick={() => setResetUserId(null)}>×</button></div><p>{language === 'km' ? 'កំណត់ពាក្យសម្ងាត់ថ្មីសម្រាប់គណនីនេះ។' : 'Set a new password for this account.'}</p><input type="password" autoFocus minLength={12} placeholder={language === 'km' ? 'ពាក្យសម្ងាត់ថ្មី (យ៉ាងតិច ១២ តួអក្សរ)' : 'New password (12+ characters)'} value={resetNewPassword} onChange={(event) => setResetNewPassword(event.target.value)} /><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={() => setResetUserId(null)}>{t.cancel}</button><button type="button" className="modal-update-button" onClick={() => void resetAccountPassword()}>{language === 'km' ? 'ធ្វើបច្ចុប្បន្នភាពពាក្យសម្ងាត់' : 'Update password'}</button></div></div></div>)}
       {editingUser && (<div className="user-edit-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) cancelEdit(); }}><div className="user-edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-user-title"><div className="user-edit-modal-heading"><strong id="edit-user-title">{t.edit} {editingUser.name}</strong><button type="button" className="modal-close-button" aria-label={t.cancel} onClick={cancelEdit}>×</button></div><label><span>{t.fullName}<span className="required-mark" aria-hidden="true"> *</span></span><input value={editName} onChange={(event) => setEditName(event.target.value)} required autoFocus /></label><label><span>{t.emailAddress}<span className="required-mark" aria-hidden="true"> *</span></span><input type="email" value={editEmail} onChange={(event) => setEditEmail(event.target.value)} required /></label><div className="user-edit-modal-actions"><button type="button" className="modal-cancel-button" onClick={cancelEdit}>{t.cancel}</button><button type="button" className="modal-update-button" onClick={() => saveEdit(editingUser.id)}>{t.update}</button></div></div></div>)}
       <div className="role-access">
         <div className="user-directory-heading"><strong>{t.roleAccess}</strong><span>{t.demoPermissions}</span></div>
@@ -355,7 +394,7 @@ export function UserManagement({ currentUser, language, token }: UserManagementP
           </tbody>
         </table></div>
       </div>
-      <p className="user-management-footnote">{t.demoDataReset}</p>
+      <p className="user-management-footnote">Account changes are saved through the user management API.</p>
     </section>
   );
 }

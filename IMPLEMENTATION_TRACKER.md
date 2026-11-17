@@ -1,6 +1,18 @@
 # Fraud Detection Project Implementation Tracker
 
-Last reviewed: 2026-11-15
+Last reviewed: 2026-11-17 (feature-engineering update; earlier audits retain their original dates)
+
+## Week 18: final evaluation and writing
+
+| Task | Status | Evidence / notes |
+|---|---|---|
+| Score frozen models once for Week 18 | Complete | Eleven artifacts; [receipt](reports/final/receipt.json) and [manifest](reports/final/frozen_manifest.json). No fitting or threshold changes. |
+| Use a previously untouched 15% chronological test set | Not satisfied | Existing partition appears in earlier test-bearing reports and replay code. New independent later data is required for this claim. |
+| Compile all five final metrics | Complete | [Tables](reports/final/FINAL_TABLES.md), [CSV](reports/final/metrics.csv), [JSON](reports/final/metrics.json). No artifact reaches 85% test recall. |
+| Write Chapter 5 | Draft complete | [Empirical Results](docs/CHAPTER_5_EMPIRICAL_RESULTS.md) |
+| Write Chapter 6 | Draft complete | [Discussion and Limitations](docs/CHAPTER_6_DISCUSSION_LIMITATIONS.md) |
+
+See the [Week 18 record](docs/WEEK18_FINAL_EVALUATION.md). Earlier tracker entries describe implementation history and do not establish that the test partition remained untouched.
 
 ## Initial project setup
 
@@ -43,6 +55,7 @@ Last reviewed: 2026-11-15
 - Create `src/features/`, `src/models/`, and `api/` if these paths are required by the final project structure.
 - Decide whether the project standard is Python 3.11 or 3.12, then align the Dockerfile and documentation.
 - Add an explicit Python version configuration if Python 3.11 is required.
+- Decide how live inference should obtain rolling transaction history; align offline and inference features, then regenerate features and retrain and reevaluate affected models.
 
 ## Research and thesis writing
 
@@ -96,6 +109,20 @@ Audit performed against the generated feature files and metadata on 2026-11-15.
 | Create PCA interaction features | Complete | Six pairwise interactions are generated among `V14`, `V17`, `V12`, and `V10`. |
 | Validate feature implementation | Complete | `tests/test_creditcard_features.py`: 2 tests passed. |
 
+Update on 2026-11-17:
+
+| Task | Status | Evidence / notes |
+|---|---|---|
+| Validate chronological split boundaries | Complete | [Diagram-aligned preprocessing](src/fraud_detection/diagram_preprocessing.py) rejects empty splits and splits whose time boundaries overlap or touch. |
+| Document feature and scaling differences | Complete in code | Newly generated feature metadata will state that only input `Time` and `Amount` were robust-scaled and flag the rolling-feature mismatch. Existing generated metadata has not been regenerated. |
+| Verify updated feature tests | Complete | [Feature tests](tests/test_creditcard_features.py): 5 passed, including an overlapping-boundary regression test. |
+| Align rolling features in training and inference | Open | Offline features use evolving transaction history; inference uses a fixed training-derived reference. Choose the live-history design, align implementations, regenerate features and retrain and reevaluate affected models. Existing artifacts and results have not been changed. |
+| Update preprocessing diagram | To do | Show the six interactions and additional amount statistics, the actual scaling order and artifact names, and the recorded deduplicated split counts. Do not describe the previously exposed test partition as untouched. |
+
+Diagram-aligned alternative: [diagram_preprocessing.py](src/fraud_detection/diagram_preprocessing.py) generates a separate dataset in `data/diagram_aligned/` with feature engineering before train-fitted robust scaling, the illustrated four engineered columns, and a reusable preprocessor. It reuses the deduplicated splits and records that the test partition was previously exposed. Existing experimental models and the separate rolling-feature mismatch are unchanged. Six focused tests passed, including feature values, train-only fitting and serialization.
+
+Restoration update: the original research feature-engineering script and its three feature Parquet datasets were restored at the user's request. The regenerated test feature file matches the SHA-256 hash in the frozen evaluation manifest. Existing research models and reports remain separate from the diagram-aligned workflow; using the latter requires updated training scripts and newly trained models. Original feature metadata remains unchanged.
+
 ## Production preprocessing and inference validation
 
 Audit performed on 2026-11-15.
@@ -103,7 +130,7 @@ Audit performed on 2026-11-15.
 | Task | Status | Evidence / notes |
 |---|---|---|
 | Wrap F0/F1 in a scikit-learn `Pipeline` / `ColumnTransformer` | Complete | `preprocessing_pipeline.py` provides a train-fitted scikit-learn `Pipeline` that emits legacy API columns plus F0/F1 and interaction features. |
-| Test batch features against single-row API inference | Complete | `test_batch_and_single_row_pipeline_outputs_match` verifies matching output for the same transaction. |
+| Test batch features against single-row API inference | Partial | `test_batch_and_single_row_pipeline_outputs_match` verifies consistency within inference only; it does not establish parity with offline rolling features. |
 | Benchmark transformation latency below 2 ms per transaction | Complete | 1,000-transaction benchmark: 0.189739 ms per transaction. |
 | Serialize fitted preprocessing pipeline with joblib | Complete | `models/creditcard_preprocessing.joblib` is generated and reloads as a scikit-learn `Pipeline`. |
 | Validate preprocessing implementation | Complete | `tests/test_creditcard_features.py`: 4 tests passed. |

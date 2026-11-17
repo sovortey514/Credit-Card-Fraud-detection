@@ -2,12 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.fraud_detection.engineer_creditcard_features import (
-    F0_FEATURES,
-    F1_FEATURES,
-    engineer_split_features,
-)
 from src.fraud_detection.preprocessing_pipeline import build_creditcard_preprocessing_pipeline
+from src.fraud_detection.diagram_preprocessing import prepare_diagram_splits
 
 
 def _split(times, amounts):
@@ -19,29 +15,38 @@ def _split(times, amounts):
     return pd.DataFrame(rows)
 
 
-def test_creditcard_features_are_chronological_and_leakage_safe():
+def test_rejects_overlapping_chronological_splits():
     splits = {
-        "train": _split([0, 10, 20], [1, 2, 3]),
-        "validation": _split([30, 40], [4, 5]),
-        "test": _split([50, 60], [6, 7]),
+        "train": _split([0, 10], [1, 2]),
+        "validation": _split([10, 20], [3, 4]),
+        "test": _split([30], [5]),
     }
-    result = engineer_split_features(splits)
+    with pytest.raises(ValueError, match="train must end strictly before validation"):
+        prepare_diagram_splits(splits)
 
-    assert list(result["train"].columns[: len(F0_FEATURES) + 1]) == ["Time", *F0_FEATURES]
-    assert set(F1_FEATURES).issubset(result["test"].columns)
-    assert result["validation"].iloc[0]["amount_rolling_zscore"] == pytest.approx(
-        2.449489742783178
+
+def test_diagram_pipeline_uses_train_only_and_is_reusable(tmp_path):
+    splits = {
+        "train": _split([0, 21600, 43200], [1, 2, 3]),
+        "validation": _split([64800], [100]),
+        "test": _split([86400], [200]),
+    }
+    pipeline, outputs = prepare_diagram_splits(splits)
+    assert pipeline.named_steps["scaler"].scaler_.center_[1] == pytest.approx(2)
+    raw_features = pipeline.named_steps["features"].transform(splits["validation"])
+    assert raw_features["hour_sin"].iloc[0] == pytest.approx(-1)
+    assert raw_features["V14_x_V17"].iloc[0] == 14 * 17
+    assert raw_features["amount_log1p"].iloc[0] == pytest.approx(np.log1p(100))
+    pd.testing.assert_frame_equal(
+        pipeline.transform(splits["test"]), outputs["test"].drop(columns="Class")
     )
-    assert result["test"].iloc[0]["amount_global_percentile"] == 1.0
-    assert result["train"]["Time"].is_monotonic_increasing
-    assert np.isfinite(result["test"].select_dtypes("number")).all().all()
+    import joblib
 
-
-def test_interactions_cover_top_components():
-    splits = {name: _split([i], [10 + i]) for i, name in enumerate(("train", "validation", "test"))}
-    result = engineer_split_features(splits)
-    assert "V14_x_V17" in result["train"]
-    assert "V12_x_V10" in result["train"]
+    path = tmp_path / "preprocessor.joblib"
+    joblib.dump(pipeline, path)
+    pd.testing.assert_frame_equal(
+        joblib.load(path).transform(splits["test"]), outputs["test"].drop(columns="Class")
+    )
 
 
 def test_batch_and_single_row_pipeline_outputs_match():

@@ -63,3 +63,7 @@ dist/
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
+
+# Keep the final publication table; cached probabilities remain local.
+!reports/final/metrics.csv
+reports/final/predictions.npz

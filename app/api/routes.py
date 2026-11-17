@@ -53,6 +53,16 @@ async def replay_stream(
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
 
+@router.get("/replay/{sequence}/explain", response_model=ExplanationResponse)
+def explain_replay(sequence: int, model: Literal["xgboost", "random_forest"] = "xgboost", top_n: int = Query(10, ge=1, le=10)) -> ExplanationResponse:
+    if sequence < 0:
+        raise HTTPException(status_code=422, detail="Sequence must be non-negative")
+    for index, transaction in enumerate(replay_service.transactions(limit=sequence + 1)):
+        if index == sequence:
+            return service.explain(transaction, model, top_n)
+    raise HTTPException(status_code=404, detail="Replay transaction not found")
+
+
 @router.websocket("/replay/ws")
 async def replay_websocket(websocket: WebSocket) -> None:
     """Push scored events and require an acknowledgement for every sequence ID."""
