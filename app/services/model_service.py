@@ -12,6 +12,12 @@ import shap
 
 from app.schemas.creditcard import CreditCardTransaction, ExplanationResponse, PredictionResponse, SHAPContribution
 
+import time
+from uuid import uuid4
+
+from app.services.prediction_history import PredictionHistoryRepository
+from src.fraud_detection.preprocessing_pipeline import RollingAmountHistory
+
 ROOT = Path(__file__).resolve().parents[2]
 MODEL_DIR = ROOT / "models" / "creditcard"
 CALIBRATION_PATH = ROOT / "reports" / "models" / "creditcard_threshold_calibration_f1.json"
@@ -39,9 +45,11 @@ def _class_one_base_value(explainer: shap.TreeExplainer) -> float:
 class CreditCardModelService:
     """Application service that performs preprocessing, prediction, and explanation."""
 
-    def __init__(self) -> None:
+    def __init__(self, history_repository: PredictionHistoryRepository | None = None) -> None:
         self.preprocessing = joblib.load(PREPROCESSING_PATH)
+        self.history_repository = history_repository or PredictionHistoryRepository()
         self.models: dict[str, dict[str, object]] = {}
+        self._histories: dict[str, RollingAmountHistory] = {}
         calibration = json.loads(CALIBRATION_PATH.read_text(encoding="utf-8")) if CALIBRATION_PATH.exists() else {"models": {}}
         for model_name, artifact_path in MODEL_ARTIFACTS.items():
             bundle = joblib.load(artifact_path)
@@ -60,17 +68,67 @@ class CreditCardModelService:
                 "explainer": explainer,
             }
 
-    def _features(self, transaction: CreditCardTransaction, model_name: str) -> pd.DataFrame:
+    def reset_history(self, context_id: str = "default", initial_amounts: np.ndarray | None = None) -> None:
+        """Reset one explicitly scoped chronological inference context."""
+        if initial_amounts is None:
+            transformer = self.preprocessing.named_steps["credit_card_features"]
+            initial_amounts = getattr(transformer, "train_amounts_", np.asarray([], dtype=float))[-1_000:]
+        self._histories[context_id] = RollingAmountHistory(
+            window=getattr(self.preprocessing.named_steps["credit_card_features"], "rolling_window", 1_000),
+            initial_amounts=initial_amounts,
+        )
+
+    def _history(self, context_id: str) -> RollingAmountHistory:
+        if context_id not in self._histories:
+            transformer = self.preprocessing.named_steps["credit_card_features"]
+            self.reset_history(context_id, getattr(transformer, "train_amounts_", None)[-1_000:])
+        return self._histories[context_id]
+
+    def _features(
+        self,
+        transaction: CreditCardTransaction,
+        model_name: str,
+        context_id: str | None = None,
+    ) -> pd.DataFrame:
         raw = transaction.to_frame()
         transformed = self.preprocessing.transform(raw)
+        if context_id is not None:
+            history = self._history(context_id)
+            zscore, percentile = history.transform_amount(transaction.Amount, transaction.Time)
+            transformed["amount_rolling_zscore"] = zscore
+            transformed["amount_rolling_percentile"] = percentile
         features = self.models[model_name]["features"]
         return transformed[features]
 
-    def predict(self, transaction: CreditCardTransaction, model_name: str) -> PredictionResponse:
+    def predict(
+        self,
+        transaction: CreditCardTransaction,
+        model_name: str,
+        context_id: str | None = None,
+    ) -> PredictionResponse:
         item = self.models[model_name]
-        features = self._features(transaction, model_name)
+        started = time.perf_counter()
+        features = self._features(transaction, model_name, context_id)
         probability = float(item["model"].predict_proba(features)[0, 1])
         threshold = float(item["threshold"])
+        try:
+            self.history_repository.record(
+                request_id=uuid4().hex,
+                source="replay" if context_id and context_id.startswith("replay-") else "api",
+                context_id=context_id,
+                transaction_time=transaction.Time,
+                amount=transaction.Amount,
+                model=model_name,
+                model_version=MODEL_ARTIFACTS[model_name].stem,
+                feature_version="creditcard-f1-stateful-v1" if context_id else "creditcard-f1-reference-v1",
+                probability=probability,
+                threshold=threshold,
+                is_fraud=probability >= threshold,
+                latency_ms=(time.perf_counter() - started) * 1000,
+            )
+        except Exception:
+            # Monitoring persistence is fail-open for this research prototype.
+            pass
         return PredictionResponse(
             model=model_name,
             fraud_probability=probability,
@@ -78,9 +136,9 @@ class CreditCardModelService:
             threshold=threshold,
         )
 
-    def explain(self, transaction: CreditCardTransaction, model_name: str, top_n: int = 3) -> ExplanationResponse:
+    def explain(self, transaction: CreditCardTransaction, model_name: str, top_n: int = 3, context_id: str | None = None) -> ExplanationResponse:
         item = self.models[model_name]
-        features = self._features(transaction, model_name)
+        features = self._features(transaction, model_name, context_id)
         probability = float(item["model"].predict_proba(features)[0, 1])
         threshold = float(item["threshold"])
         values = _class_one_values(item["explainer"], features)[0]

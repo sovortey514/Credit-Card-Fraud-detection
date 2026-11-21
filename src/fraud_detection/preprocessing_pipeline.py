@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -38,6 +39,52 @@ def _validate_input(frame: pd.DataFrame) -> None:
         raise ValueError(f"Missing credit-card columns: {missing}")
     if frame.empty:
         raise ValueError("At least one transaction is required")
+
+
+class RollingAmountHistory:
+    """Bounded chronological state matching the offline rolling features."""
+
+    def __init__(self, window: int = 1_000, initial_amounts: np.ndarray | None = None) -> None:
+        if window < 1:
+            raise ValueError("rolling window must be positive")
+        self.window = int(window)
+        self._values: deque[float] = deque(maxlen=self.window)
+        self.last_time: float | None = None
+        if initial_amounts is not None:
+            for amount in np.asarray(initial_amounts, dtype=float)[-self.window :]:
+                self._values.append(float(amount))
+
+    def reset(self) -> None:
+        self._values.clear()
+        self.last_time = None
+
+    def transform_amount(self, amount: float, time: float | None = None) -> tuple[float, float]:
+        """Return z-score and current-or-prior percentile, then append the row."""
+        amount = float(amount)
+        if not np.isfinite(amount):
+            raise ValueError("Amount must be finite")
+        if time is not None:
+            time = float(time)
+            if self.last_time is not None and time < self.last_time:
+                raise ValueError("Transactions must be processed in chronological order")
+
+        prior = np.asarray(self._values, dtype=float)
+        if prior.size:
+            mean = float(prior.mean())
+            std = float(prior.std(ddof=0))
+            zscore = (amount - mean) / (std if std else 1.0)
+        else:
+            zscore = 0.0
+
+        current = np.concatenate([prior, np.asarray([amount])])
+        percentile = float((current <= amount).sum() / current.size)
+        self._values.append(amount)
+        self.last_time = time
+        return zscore, percentile
+
+    @property
+    def values(self) -> tuple[float, ...]:
+        return tuple(self._values)
 
 
 class CreditCardFeatureTransformer(BaseEstimator, TransformerMixin):
@@ -103,6 +150,31 @@ class CreditCardFeatureTransformer(BaseEstimator, TransformerMixin):
                 result[f"{left}_x_{right}"] = result[left].astype(float) * result[right].astype(float)
 
         return result
+    def transform_sequential(
+        self,
+        X: pd.DataFrame,
+        initial_amounts: np.ndarray | None = None,
+    ) -> pd.DataFrame:
+        """Transform chronological rows using explicit evolving amount history."""
+        if not hasattr(self, "train_amounts_"):
+            raise RuntimeError("CreditCardFeatureTransformer must be fitted first")
+        _validate_input(X)
+        result = self.transform(X)
+        history = RollingAmountHistory(self.rolling_window, initial_amounts)
+        rolling_zscores: list[float] = []
+        rolling_percentiles: list[float] = []
+        for row in X.sort_values("Time", kind="stable").itertuples(index=False):
+            zscore, percentile = history.transform_amount(row.Amount, row.Time)
+            if not history.values[:-1]:
+                zscore = float((float(row.Amount) - self.train_amount_mean_) / self.train_amount_std_)
+            rolling_zscores.append(zscore)
+            rolling_percentiles.append(percentile)
+        ordered = X.sort_values("Time", kind="stable").index
+        sequential = result.loc[ordered].copy()
+        sequential["amount_rolling_zscore"] = rolling_zscores
+        sequential["amount_rolling_percentile"] = rolling_percentiles
+        return sequential.loc[X.index]
+
 
 
 def build_creditcard_preprocessing_pipeline() -> Pipeline:

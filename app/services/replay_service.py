@@ -16,7 +16,7 @@ from app.services.model_service import CreditCardModelService
 
 ROOT = Path(__file__).resolve().parents[2]
 TEST_PATH = ROOT / "data" / "processed" / "creditcard_test.parquet"
-ALLOWED_SPEEDS = (10, 50, 100, 250)
+ALLOWED_SPEEDS = (*range(1, 11), 50, 100, 250)
 RAW_COLUMNS = ["Time", "Amount", *[f"V{i}" for i in range(1, 29)]]
 
 
@@ -33,9 +33,16 @@ class CreditCardReplayService:
         for row in frame[RAW_COLUMNS].to_dict(orient="records"):
             yield CreditCardTransaction.model_validate(row)
 
-    def score(self, transaction: CreditCardTransaction, sequence: int, model_name: str) -> ReplayEvent:
+    def initial_history(self) -> pd.Series:
+        frames = [
+            pd.read_parquet(ROOT / "data" / "processed" / "creditcard_train.parquet"),
+            pd.read_parquet(ROOT / "data" / "processed" / "creditcard_validation.parquet"),
+        ]
+        return pd.concat(frames, ignore_index=True).sort_values("Time", kind="stable")["Amount"].astype(float)
+
+    def score(self, transaction: CreditCardTransaction, sequence: int, model_name: str, context_id: str = "replay") -> ReplayEvent:
         started = time.perf_counter()
-        prediction = self.model_service.predict(transaction, model_name)
+        prediction = self.model_service.predict(transaction, model_name, context_id=context_id)
         return ReplayEvent(
             sequence=sequence,
             time_seconds=transaction.Time,
@@ -55,9 +62,14 @@ class CreditCardReplayService:
         limit: int | None = None,
     ) -> AsyncIterator[ReplayEvent]:
         delay = 1.0 / speed
-        for sequence, transaction in enumerate(self.transactions(limit)):
-            yield self.score(transaction, sequence, model_name)
-            await asyncio.sleep(delay)
+        context_id = f"replay-{id(asyncio.current_task())}"
+        self.model_service.reset_history(context_id, self.initial_history().to_numpy())
+        try:
+            for sequence, transaction in enumerate(self.transactions(limit)):
+                yield self.score(transaction, sequence, model_name, context_id)
+                await asyncio.sleep(delay)
+        finally:
+            self.model_service.reset_history(context_id)
 
 
 def sse_message(event: ReplayEvent) -> str:

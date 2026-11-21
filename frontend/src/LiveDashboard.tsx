@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AUTH_API_URL, AuthScreen, UserManagement, apiError, toSessionUser, type SessionUser } from './auth';
 import { getMessages, type Language } from './i18n';
 
-type ReplaySpeed = 10 | 50 | 100 | 250;
+type ReplaySpeed = 1 | 2 | 5 | 10 | 50 | 100 | 250;
 type ReplayEvent = {
   sequence: number;
   time_seconds: number;
@@ -19,7 +19,7 @@ type ReplayComplete = { type: 'complete'; emitted: number; acknowledged: number;
 type DashboardView = 'monitor' | 'users';
 
 const WS_URL = import.meta.env.VITE_REPLAY_WS_URL ?? 'ws://localhost:8000/api/v1/replay/ws';
-const SPEEDS: ReplaySpeed[] = [10, 50, 100, 250];
+const SPEEDS: ReplaySpeed[] = [1, 2, 5, 10, 50, 100, 250];
 
 function AlertExplanation({ event }: { event: ReplayEvent }) {
   const [data, setData] = useState<{ base_value: number; top_contributions: { feature: string; value: number; direction: string }[] } | null>(null);
@@ -113,7 +113,7 @@ export default function LiveDashboard() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('transferguard-dashboard-theme') === 'light' ? 'light' : 'dark');
   const [view, setView] = useState<DashboardView>('monitor');
   const [events, setEvents] = useState<ReplayEvent[]>([]);
-  const [speed, setSpeed] = useState<ReplaySpeed>(100);
+  const [speed, setSpeed] = useState<ReplaySpeed>(10);
   const [model, setModel] = useState<'xgboost' | 'random_forest'>('xgboost');
   const [connected, setConnected] = useState(false);
   const [running, setRunning] = useState(false);

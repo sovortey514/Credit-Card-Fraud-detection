@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from typing import Literal
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -36,6 +37,18 @@ def explain(
     return service.explain(transaction, model, top_n)
 
 
+@router.get("/monitoring/summary")
+def monitoring_summary() -> dict:
+    """Return non-sensitive prediction volume and latency metrics."""
+    return service.history_repository.summary()
+
+
+@router.get("/monitoring/recent")
+def monitoring_recent(limit: int = Query(100, ge=1, le=500)) -> list[dict]:
+    """Return recent prediction metadata without raw transaction payloads."""
+    return service.history_repository.recent(limit)
+
+
 @router.get("/replay/stream")
 async def replay_stream(
     speed: int = Query(10, description="Held-out replay speed in transactions per second"),
@@ -57,9 +70,15 @@ async def replay_stream(
 def explain_replay(sequence: int, model: Literal["xgboost", "random_forest"] = "xgboost", top_n: int = Query(10, ge=1, le=10)) -> ExplanationResponse:
     if sequence < 0:
         raise HTTPException(status_code=422, detail="Sequence must be non-negative")
-    for index, transaction in enumerate(replay_service.transactions(limit=sequence + 1)):
-        if index == sequence:
-            return service.explain(transaction, model, top_n)
+    context_id = f"explain-replay-{uuid4().hex}"
+    service.reset_history(context_id, replay_service.initial_history().to_numpy())
+    try:
+        for index, transaction in enumerate(replay_service.transactions(limit=sequence + 1)):
+            if index == sequence:
+                return service.explain(transaction, model, top_n, context_id=context_id)
+            service.predict(transaction, model, context_id=context_id)
+    finally:
+        service.reset_history(context_id)
     raise HTTPException(status_code=404, detail="Replay transaction not found")
 
 

@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-ReplaySpeed = Literal[10, 50, 100, 250]
+ReplaySpeed = Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 50, 100, 250]
 
 
 class ReplayEvent(BaseModel):

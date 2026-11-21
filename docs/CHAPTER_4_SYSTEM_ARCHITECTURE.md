@@ -6,7 +6,9 @@ The prototype supports investigation of credit-card fraud predictions using a Re
 
 ## 4.2 Components
 
-The browser presents a transaction feed, aggregate indicators, and an alert inspection panel. The fraud API loads trained models and preprocessing artifacts to score transactions and provide TreeSHAP explanations. Its replay engine reads the held-out Parquet split in chronological order and streams scored events over WebSocket. A separate authentication service manages user accounts and issues bearer tokens, with MySQL storing account and token records.
+The browser presents a transaction feed, aggregate indicators, and an alert inspection panel. The fraud API loads trained Logistic Regression baseline, Random Forest, and XGBoost artifacts together with the train-fitted preprocessing pipeline and TreeSHAP explainers. The preprocessing contract includes deterministic temporal/amount/PCA-interaction features and bounded chronological rolling amount features. Replay creates an isolated rolling-history context, scores transactions in `Time` order, and streams scored events over WebSocket or SSE. A separate authentication service manages user accounts and issues bearer tokens, with MySQL storing account and token records.
+
+The current prototype demonstrates real-time behavior through chronological replay of historical transactions; it is not a connection to a live bank transaction switch. LightGBM and genetic-algorithm optimization are not part of the implemented model set.
 
 ## 4.3 Transaction and explanation flow
 
@@ -18,4 +20,4 @@ Docker Compose defines the dashboard, fraud API with replay engine, authenticati
 
 ## 4.5 Security and evaluation
 
-User-management endpoints use JWT bearer authentication and role checks. Fraud inference and replay endpoints should be considered prototype interfaces: access control, transport security, deployment configuration, and risk assessment require further work before use with real transaction data. Evaluation should separately document predictive performance, explanation behavior, and end-to-end latency.
+User-management endpoints use JWT bearer authentication and role checks. Fraud inference and replay endpoints should be considered prototype interfaces: access control, transport security, deployment configuration, and risk assessment require further work before use with real transaction data. Evaluation should separately document predictive performance, explanation behavior, and end-to-end latency. The existing held-out partition has been used in earlier reports and replay; it must therefore be described as previously exposed unless a later independent evaluation period is obtained.

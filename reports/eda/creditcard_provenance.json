@@ -1,0 +1,20 @@
+{
+  "dataset": "ULB/Kaggle Credit Card Fraud Detection",
+  "source_file": "data/raw/creditcard.csv",
+  "source_url": "https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud",
+  "verified_on": "2026-11-21",
+  "file_size_bytes": 150828752,
+  "sha256": "76274B691B16A6C49D3F159C883398E03CCD6D1EE12D9D8EE38F4B4B98551A89",
+  "transactions": 284807,
+  "fraud_transactions": 492,
+  "fraud_rate_percent": 0.1727485630620034,
+  "missing_cells": 0,
+  "duplicate_rows": 1081,
+  "time_min_seconds": 0.0,
+  "time_max_seconds": 172792.0,
+  "time_span_hours": 47.99777777777778,
+  "amount_skewness": 16.977724453761006,
+  "feature_columns": ["Time", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "Amount"],
+  "target_column": "Class",
+  "interpretation_note": "V1-V28 are anonymized PCA components; the dataset does not identify card-present versus card-not-present transactions."
+}

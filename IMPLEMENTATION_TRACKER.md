@@ -29,7 +29,7 @@ See the [Week 18 record](docs/WEEK18_FINAL_EVALUATION.md). Earlier tracker entri
 
 | Task | Status | Evidence / notes |
 |---|---|---|
-| Configure Python 3.11 | Partial | Python 3.11 is not explicitly pinned in the dependency configuration. |
+| Configure Python 3.12 | Complete | `pyproject.toml`, `Dockerfile`, `README.md`, and the frozen evaluation manifest use Python 3.12. |
 | Add XGBoost | Complete | `xgboost` is listed in `requirements.txt`. |
 | Add scikit-learn | Complete | `scikit-learn` is listed in `requirements.txt`. |
 | Add imbalanced-learn | Complete | `imbalanced-learn` is listed in `requirements.txt`. |
@@ -40,7 +40,7 @@ See the [Week 18 record](docs/WEEK18_FINAL_EVALUATION.md). Earlier tracker entri
 
 | Task | Status | Evidence / notes |
 |---|---|---|
-| Create Dockerfile | Partial | `Dockerfile` exists, but it uses Python 3.12 instead of the requested Python 3.11. |
+| Create Dockerfile | Complete | `Dockerfile` uses the project-standard Python 3.12 image. |
 | Create docker-compose.yml | Complete | `docker-compose.yml` exists and defines the local API and MySQL services. |
 
 ## Reproducibility
@@ -52,33 +52,32 @@ See the [Week 18 record](docs/WEEK18_FINAL_EVALUATION.md). Earlier tracker entri
 
 ## Next actions
 
-- Create `src/features/`, `src/models/`, and `api/` if these paths are required by the final project structure.
-- Decide whether the project standard is Python 3.11 or 3.12, then align the Dockerfile and documentation.
-- Add an explicit Python version configuration if Python 3.11 is required.
-- Decide how live inference should obtain rolling transaction history; align offline and inference features, then regenerate features and retrain and reevaluate affected models.
+- The project standard is Python 3.12, declared in `pyproject.toml` and aligned with Docker and the frozen evaluation environment.
+- Use the new stateful rolling-history context for chronological replay; one-off stateless inference remains an explicit reference-history mode.
+- Create `src/features/`, `src/models/`, and `api/` only if required by the final submission structure; current implementation uses `src/fraud_detection/` and `app/`.
 
 ## Research and thesis writing
 
 | Task | Status | Evidence / notes |
 |---|---|---|
-| Review Dal Pozzolo et al. on credit-card fraud | To do | No paper notes, citation, or bibliography entry was found. |
-| Review Lundberg et al. TreeSHAP | Partial | SHAP `TreeExplainer` is implemented in `src/explainability.py`, but the paper review and citation are missing. |
-| Synthesize PR-AUC vs ROC-AUC literature | Partial | The code calculates both metrics in the model training scripts, but no written literature synthesis was found. |
-| Synthesize SMOTE vs class-weighting literature | Partial | SMOTE/SMOTE-Tomek and class weighting are implemented, but no written comparison of the literature was found. |
-| Draft Chapter 1: Introduction | To do | No Chapter 1 draft was found. |
-| Draft Chapter 2: Literature Review | To do | No Chapter 2 draft or bibliography was found. |
-| Focus the chapters on card-not-present fraud and PCA features | To do | Credit-card PCA features `V1`–`V28` are implemented in the feature pipeline, but this focus has not been documented in thesis chapters. |
+| Review Dal Pozzolo et al. on credit-card fraud | Complete | Discussed in [Chapter 2](docs/CHAPTER_2_LITERATURE_REVIEW.md), references [1] and [5]. |
+| Review Lundberg et al. TreeSHAP | Complete | TreeSHAP methodology and limitations discussed in [Chapter 2](docs/CHAPTER_2_LITERATURE_REVIEW.md), references [3] and [4]. |
+| Synthesize PR-AUC vs ROC-AUC literature | Complete | Metric choice and rare-event interpretation documented in [Chapter 2](docs/CHAPTER_2_LITERATURE_REVIEW.md), references [6] and [7]. |
+| Synthesize SMOTE vs class-weighting literature | Complete | Training-only comparison and limitations documented in [Chapter 2](docs/CHAPTER_2_LITERATURE_REVIEW.md), references [2] and [5]. |
+| Draft Chapter 1: Introduction | Draft complete | [Chapter 1](docs/CHAPTER_1_INTRODUCTION.md) |
+| Draft Chapter 2: Literature Review | Draft complete | [Chapter 2](docs/CHAPTER_2_LITERATURE_REVIEW.md) and [Bibliography](docs/BIBLIOGRAPHY.md) |
+| Focus the chapters on card-not-present fraud and PCA features | Complete with limitation | Chapters 1–2 explain CNP as motivation but explicitly state that the dataset has no payment-channel field; `V1`–`V28` are treated as anonymized PCA components. | |
 
 ## Credit-card dataset and EDA
 
-Audit performed against `data/raw/creditcard.csv` on 2026-11-15.
+Audit performed against `data/raw/creditcard.csv` on 2026-11-21; the generated EDA artifacts summarize the full raw dataset.
 
 | Task | Status | Verified result / evidence |
 |---|---|---|
 | Download Kaggle `creditcard.csv` into `data/raw/` | Complete | File exists at `data/raw/creditcard.csv`; size is 150,828,752 bytes. |
 | Verify transaction count | Complete | 284,807 transactions. |
 | Verify fraud count and rate | Complete | 492 fraud cases; fraud rate is 0.1727%. |
-| Record SHA-256 hash | Partial | Current hash: `76274B691B16A6C49D3F159C883398E03CCD6D1EE12D9D8EE38F4B4B98551A89`. It should be saved in a dedicated credit-card provenance report. |
+| Record SHA-256 hash | Complete | Verified on 2026-11-21; hash and source metadata are recorded in [`reports/eda/creditcard_provenance.json`](reports/eda/creditcard_provenance.json). Current SHA-256: `76274B691B16A6C49D3F159C883398E03CCD6D1EE12D9D8EE38F4B4B98551A89`. |
 | Inspect `Time` span | Complete | `Time` ranges from 0 to 172,792 seconds, or approximately 48 hours. |
 | Inspect `Amount` skewness | Complete | Amount skewness is 16.977724, confirming strong right skew. |
 | Inspect `V1`–`V28` distributions | Complete | Saved in `reports/eda/creditcard_pca_distributions.png`; the full-dataset summary is recorded in `reports/eda/creditcard_eda_summary.json`. |
