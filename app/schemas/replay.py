@@ -18,6 +18,12 @@ class ReplayEvent(BaseModel):
     fraud_probability: float
     is_fraud: bool
     threshold: float
+    ml_probability: float
+    route: Literal["approve", "step_up", "flag"]
+    triggered_rules: list[dict[str, object]] = Field(default_factory=list)
+    velocity: dict[str, float | int] = Field(default_factory=dict)
+    request_id: str
+    top_contributions: list[dict[str, object]] = Field(default_factory=list)
     latency_ms: float
     pca_features: dict[str, float]
 

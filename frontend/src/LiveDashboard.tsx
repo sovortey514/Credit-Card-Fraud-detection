@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AUTH_API_URL, AuthScreen, UserManagement, apiError, toSessionUser, type SessionUser } from './auth';
 import { getMessages, type Language } from './i18n';
+import { CardManagement } from './CardManagement';
 
 type ReplaySpeed = 1 | 2 | 5 | 10 | 50 | 100 | 250;
 type ReplayEvent = {
@@ -11,12 +12,18 @@ type ReplayEvent = {
   fraud_probability: number;
   is_fraud: boolean;
   threshold: number;
+  request_id: string;
+  ml_probability: number;
+  route: 'approve' | 'step_up' | 'flag';
+  triggered_rules: { code: string; message: string; severity: string }[];
+  velocity: Record<string, number>;
+  top_contributions: { feature: string; value: number; direction: string }[];
   latency_ms: number;
   pca_features: Record<string, number>;
 };
 
 type ReplayComplete = { type: 'complete'; emitted: number; acknowledged: number; dropped: number };
-type DashboardView = 'monitor' | 'users';
+type DashboardView = 'monitor' | 'users' | 'cards';
 
 const WS_URL = import.meta.env.VITE_REPLAY_WS_URL ?? 'ws://localhost:8000/api/v1/replay/ws';
 const SPEEDS: ReplaySpeed[] = [1, 2, 5, 10, 50, 100, 250];
@@ -45,9 +52,9 @@ function percentile(values: number[], percentileValue: number): number {
 }
 
 function riskLabel(event: ReplayEvent): string {
-  if (event.fraud_probability >= Math.max(event.threshold, 0.85)) return 'HIGH RISK';
-  if (event.is_fraud) return 'REVIEW';
-  return 'CLEAR';
+  if (event.route === 'flag') return 'FLAGGED';
+  if (event.route === 'step_up') return 'STEP-UP 3DS';
+  return 'APPROVED';
 }
 
 function DashboardSidebar({
@@ -77,6 +84,7 @@ function DashboardSidebar({
       <p className="mb-3 mt-12 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">{kh ? 'កន្លែងធ្វើការ' : 'Workspace'}</p>
       <nav className="space-y-1">
         <button onClick={() => onViewChange('monitor')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'monitor' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">▦</span>{kh ? 'តាមដានផ្ទាល់' : 'Live monitor'}</button>
+        <button onClick={() => onViewChange('cards')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'cards' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">▣</span>{kh ? 'គ្រប់គ្រងកាត' : 'Manage cards'}</button>
         {canManageUsers && <button onClick={() => onViewChange('users')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'users' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">♙</span>{getMessages(language).userManagement}</button>}
       </nav>
       <div className="dashboard-sidebar-bottom mt-auto space-y-4">
@@ -119,6 +127,8 @@ export default function LiveDashboard() {
   const [running, setRunning] = useState(false);
   const [completion, setCompletion] = useState<ReplayComplete | null>(null);
   const [selected, setSelected] = useState<ReplayEvent | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'flagged' | 'step_up' | 'reviewed'>('all');
+  const [reviewed, setReviewed] = useState<Record<string, string>>({});
   const socketRef = useRef<WebSocket | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const canManageUsers = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
@@ -176,10 +186,30 @@ export default function LiveDashboard() {
     return {
       txPerSecond: elapsedSeconds ? events.length / elapsedSeconds : 0,
       p95: percentile(latencyValues, 95),
-      reviewQueue: events.filter((event) => event.is_fraud).length,
-      highRisk: events.filter((event) => riskLabel(event) === 'HIGH RISK').length,
+      reviewQueue: events.filter((event) => event.route !== 'approve' && !reviewed[event.request_id]).length,
+      highRisk: events.filter((event) => event.route === 'flag').length,
     };
-  }, [events]);
+  }, [events, reviewed]);
+
+  const visibleEvents = useMemo(() => events.filter((event) => {
+    if (statusFilter === 'flagged') return event.route === 'flag';
+    if (statusFilter === 'step_up') return event.route === 'step_up';
+    if (statusFilter === 'reviewed') return Boolean(reviewed[event.request_id]);
+    return true;
+  }), [events, reviewed, statusFilter]);
+
+  async function submitDisposition(disposition: 'APPROVED' | 'CONFIRMED_FRAUD' | 'ESCALATED') {
+    if (!selected) return;
+    const api = import.meta.env.VITE_FRAUD_API_URL ?? 'http://localhost:8000';
+    const response = await fetch(`${api}/api/v1/alerts/${encodeURIComponent(selected.request_id)}/disposition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disposition, reviewer_id: currentUser?.email ?? currentUser?.name ?? 'dashboard-user' }),
+    });
+    if (!response.ok) return;
+    setReviewed((current) => ({ ...current, [selected.request_id]: disposition }));
+    setSelected(null);
+  }
 
   useEffect(() => () => socketRef.current?.close(), []);
 
@@ -239,6 +269,15 @@ export default function LiveDashboard() {
     );
   }
 
+  if (view === 'cards') {
+    return (
+      <div className={`dashboard-shell flex min-h-screen bg-[#08131f] text-slate-100 ${theme === 'light' ? 'dashboard-theme-light' : ''}`}>
+        <DashboardSidebar currentUser={currentUser} view={view} canManageUsers={canManageUsers} connected={connected} onViewChange={setView} onLogout={() => void logout()} language={language} />
+        <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10"><div className="mx-auto max-w-[1480px]"><header className="dashboard-page-header mb-8 flex items-center justify-between gap-4"><div><p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">TransferGuard / card security</p><h1 className="mt-3 text-3xl font-semibold text-white">Card management</h1></div><button onClick={() => setView('monitor')} className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300">Live monitor</button></header><CardManagement currentUser={currentUser} token={authToken} /></div></main>
+      </div>
+    );
+  }
+
   return (
     <div className={`dashboard-shell flex min-h-screen bg-[#08131f] text-slate-100 selection:bg-cyan-300 selection:text-[#08131f] ${theme === 'light' ? 'dashboard-theme-light' : ''}`}>
       <DashboardSidebar currentUser={currentUser} view={view} canManageUsers={canManageUsers} connected={connected} onViewChange={setView} onLogout={() => void logout()} language={language} />
@@ -273,12 +312,12 @@ export default function LiveDashboard() {
           <article className="dashboard-card dashboard-feed overflow-hidden rounded-2xl border border-slate-800 bg-[#0d1d2c]">
             <div className="flex flex-col justify-between gap-4 border-b border-slate-800 px-5 py-4 sm:flex-row sm:items-center">
               <div><h2 className="text-sm font-semibold text-white">{kh ? 'ប្រតិបត្តិការផ្ទាល់' : 'Live transaction feed'}</h2><p className="mt-1 text-xs text-slate-500">{kh ? 'ចុចប្រតិបត្តិការដែលបានសម្គាល់ ដើម្បីពិនិត្យព័ត៌មាន។' : 'Click a flagged transaction to inspect the scoring payload.'}</p></div>
-              <div className="flex items-center gap-2 text-[11px] text-slate-500"><span>Replay speed</span>{SPEEDS.map((value) => <button key={value} disabled={running} onClick={() => setSpeed(value)} className={`rounded-md border px-2 py-1 font-semibold ${speed === value ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-200' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>{value}</button>)}</div>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500"><span>Filter</span>{(['all', 'flagged', 'step_up', 'reviewed'] as const).map((value) => <button key={value} onClick={() => setStatusFilter(value)} className={`rounded-md border px-2 py-1 font-semibold ${statusFilter === value ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-200' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>{value === 'step_up' ? 'Step-up 3DS' : value[0].toUpperCase() + value.slice(1)}</button>)}<span className="ml-2">Speed</span>{SPEEDS.map((value) => <button key={value} disabled={running} onClick={() => setSpeed(value)} className={`rounded-md border px-2 py-1 font-semibold ${speed === value ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-200' : 'border-slate-700 text-slate-500 hover:text-slate-300'}`}>{value}</button>)}</div>
             </div>
             <div className="max-h-[600px] overflow-auto">
               <table className="w-full min-w-[760px] text-left text-xs">
                 <thead className="sticky top-0 bg-[#0d1d2c] text-[10px] uppercase tracking-[0.18em] text-slate-500"><tr><th className="px-5 py-3">Seq / time</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Risk score</th><th className="px-4 py-3">Latency</th><th className="px-5 py-3">Status</th></tr></thead>
-                <tbody className="divide-y divide-slate-800/80">{events.length ? events.slice().reverse().map((event) => { const label = riskLabel(event); return <tr key={event.sequence} onClick={() => label !== 'CLEAR' && setSelected(event)} className={`${label !== 'CLEAR' ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}><td className="px-5 py-3"><span className="font-semibold text-slate-300">#{event.sequence.toString().padStart(5, '0')}</span><span className="ml-2 text-slate-500">{event.time_seconds.toFixed(0)}s</span></td><td className="px-4 py-3 text-slate-300">${event.amount.toFixed(2)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><div className="h-1.5 w-20 rounded-full bg-slate-800"><div className={`h-1.5 rounded-full ${label === 'HIGH RISK' ? 'bg-rose-400' : label === 'REVIEW' ? 'bg-amber-300' : 'bg-emerald-300'}`} style={{ width: `${Math.min(100, event.fraud_probability * 100)}%` }} /></div><span className="font-mono text-slate-300">{(event.fraud_probability * 100).toFixed(1)}%</span></div></td><td className="px-4 py-3 font-mono text-slate-500">{event.latency_ms.toFixed(2)}ms</td><td className="px-5 py-3"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${label === 'HIGH RISK' ? 'bg-rose-400/15 text-rose-300' : label === 'REVIEW' ? 'bg-amber-300/15 text-amber-200' : 'bg-emerald-300/10 text-emerald-300'}`}>{label}</span></td></tr>; }) : <tr><td colSpan={5} className="px-5 py-20 text-center text-slate-600">Start a replay to populate the live feed.</td></tr>}</tbody>
+                <tbody className="divide-y divide-slate-800/80">{visibleEvents.length ? visibleEvents.slice().reverse().map((event) => { const label = riskLabel(event); const isReviewed = Boolean(reviewed[event.request_id]); return <tr key={event.sequence} onClick={() => label !== 'APPROVED' && setSelected(event)} className={`${label !== 'APPROVED' ? 'cursor-pointer hover:bg-slate-800/60' : ''}`}><td className="px-5 py-3"><span className="font-semibold text-slate-300">#{event.sequence.toString().padStart(5, '0')}</span><span className="ml-2 text-slate-500">{event.time_seconds.toFixed(0)}s</span></td><td className="px-4 py-3 text-slate-300">${event.amount.toFixed(2)}</td><td className="px-4 py-3"><div className="flex items-center gap-2"><div className="h-1.5 w-20 rounded-full bg-slate-800"><div className={`h-1.5 rounded-full ${label === 'FLAGGED' ? 'bg-rose-400' : label === 'STEP-UP 3DS' ? 'bg-amber-300' : 'bg-emerald-300'}`} style={{ width: `${Math.min(100, event.fraud_probability * 100)}%` }} /></div><span className="font-mono text-slate-300">{(event.fraud_probability * 100).toFixed(1)}%</span></div></td><td className="px-4 py-3 font-mono text-slate-500">{event.latency_ms.toFixed(2)}ms</td><td className="px-5 py-3"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${label === 'FLAGGED' ? 'bg-rose-400/15 text-rose-300' : label === 'STEP-UP 3DS' ? 'bg-amber-300/15 text-amber-200' : 'bg-emerald-300/10 text-emerald-300'}`}>{isReviewed ? `REVIEWED: ${reviewed[event.request_id]}` : label}</span></td></tr>; }) : <tr><td colSpan={5} className="px-5 py-20 text-center text-slate-600">No transactions match this filter.</td></tr>}</tbody>
               </table>
             </div>
           </article>
@@ -287,7 +326,7 @@ export default function LiveDashboard() {
         </section>
       </div>
 
-      {selected && <div className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm" onClick={() => setSelected(null)}><aside className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-slate-700 bg-[#0b1a28] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">Flagged transaction</p><h2 className="mt-2 text-2xl font-semibold text-white">#{selected.sequence.toString().padStart(5, '0')}</h2></div><button onClick={() => setSelected(null)} aria-label="Close inspection" className="rounded-lg border border-slate-700 px-3 py-1 text-xl text-slate-400 hover:text-white">×</button></div><div className="mt-8 grid grid-cols-2 gap-3">{[['Risk probability', `${(selected.fraud_probability * 100).toFixed(2)}%`], ['Decision threshold', `${(selected.threshold * 100).toFixed(0)}%`], ['Amount', `$${selected.amount.toFixed(2)}`], ['Score latency', `${selected.latency_ms.toFixed(2)} ms`]].map(([label, value]) => <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3"><p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p><p className="mt-2 font-mono text-sm text-slate-200">{value}</p></div>)}</div><AlertExplanation event={selected} /><div className="mt-8"><h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Top PCA signal inputs</h3><div className="mt-3 divide-y divide-slate-800 rounded-xl border border-slate-800">{Object.entries(selected.pca_features).map(([feature, value]) => <div key={feature} className="flex justify-between px-4 py-3 text-sm"><span className="font-mono text-cyan-200">{feature}</span><span className="font-mono text-slate-300">{value.toFixed(5)}</span></div>)}</div></div><p className="mt-8 text-xs leading-5 text-slate-500">Model: {selected.model}. Time: {selected.time_seconds.toFixed(0)} seconds in the held-out chronological test stream.</p></aside></div>}
+      {selected && <div className="fixed inset-0 z-20 bg-black/60 backdrop-blur-sm" onClick={() => setSelected(null)}><aside className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-slate-700 bg-[#0b1a28] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">Risk review</p><h2 className="mt-2 text-2xl font-semibold text-white">#{selected.sequence.toString().padStart(5, '0')}</h2></div><button onClick={() => setSelected(null)} aria-label="Close inspection" className="rounded-lg border border-slate-700 px-3 py-1 text-xl text-slate-400 hover:text-white">×</button></div><div className="mt-8 grid grid-cols-2 gap-3">{[['Risk probability', `${(selected.fraud_probability * 100).toFixed(2)}%`], ['Decision route', selected.route], ['Amount', `$${selected.amount.toFixed(2)}`], ['Score latency', `${selected.latency_ms.toFixed(2)} ms`]].map(([label, value]) => <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/60 p-3"><p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p><p className="mt-2 font-mono text-sm text-slate-200">{value}</p></div>)}</div>{selected.triggered_rules.length > 0 && <section className="mt-8"><h3 className="text-sm font-semibold text-white">Triggered business rules</h3><ul className="mt-3 space-y-2">{selected.triggered_rules.map((rule) => <li key={rule.code} className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-xs text-amber-100">{rule.message}</li>)}</ul></section>}<AlertExplanation event={selected} /><div className="mt-8"><h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Top PCA signal inputs</h3><div className="mt-3 divide-y divide-slate-800 rounded-xl border border-slate-800">{Object.entries(selected.pca_features).map(([feature, value]) => <div key={feature} className="flex justify-between px-4 py-3 text-sm"><span className="font-mono text-cyan-200">{feature}</span><span className="font-mono text-slate-300">{value.toFixed(5)}</span></div>)}</div></div><div className="mt-8 grid grid-cols-3 gap-2"><button onClick={() => void submitDisposition('APPROVED')} className="rounded-lg bg-emerald-400/15 px-2 py-2 text-xs font-semibold text-emerald-200">Approve</button><button onClick={() => void submitDisposition('CONFIRMED_FRAUD')} className="rounded-lg bg-rose-400/15 px-2 py-2 text-xs font-semibold text-rose-200">Confirm fraud</button><button onClick={() => void submitDisposition('ESCALATED')} className="rounded-lg bg-amber-400/15 px-2 py-2 text-xs font-semibold text-amber-200">Escalate</button></div><p className="mt-8 text-xs leading-5 text-slate-500">Model: {selected.model}. Time: {selected.time_seconds.toFixed(0)} seconds in the held-out chronological test stream.</p></aside></div>}
       </main>
     </div>
   );

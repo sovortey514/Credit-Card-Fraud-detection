@@ -54,6 +54,26 @@ class PredictionHistoryRepository:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_prediction_model ON prediction_history(model)"
             )
+            existing = {row[1] for row in connection.execute("PRAGMA table_info(prediction_history)").fetchall()}
+            for column, definition in {
+                "route": "TEXT NOT NULL DEFAULT 'approve'",
+                "triggered_rules": "TEXT NOT NULL DEFAULT '[]'",
+                "top_contributions": "TEXT NOT NULL DEFAULT '[]'",
+            }.items():
+                if column not in existing:
+                    connection.execute(f"ALTER TABLE prediction_history ADD COLUMN {column} {definition}")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analyst_dispositions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    request_id TEXT NOT NULL,
+                    disposition TEXT NOT NULL CHECK(disposition IN ('APPROVED', 'CONFIRMED_FRAUD', 'ESCALATED')),
+                    reviewer_id TEXT NOT NULL,
+                    notes TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
 
     def record(
         self,
@@ -70,6 +90,9 @@ class PredictionHistoryRepository:
         threshold: float,
         is_fraud: bool,
         latency_ms: float,
+        route: str = "approve",
+        triggered_rules: list[dict[str, object]] | None = None,
+        top_contributions: list[dict[str, object]] | None = None,
     ) -> int:
         amount_hash = hashlib.sha256(f"{float(amount):.12g}".encode()).hexdigest()
         with self._connect() as connection:
@@ -78,8 +101,8 @@ class PredictionHistoryRepository:
                 INSERT INTO prediction_history
                 (request_id, source, context_id, transaction_time, amount_hash,
                  model, model_version, feature_version, probability, threshold,
-                 is_fraud, latency_ms, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 is_fraud, route, triggered_rules, top_contributions, latency_ms, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     request_id,
@@ -93,11 +116,26 @@ class PredictionHistoryRepository:
                     float(probability),
                     float(threshold),
                     int(is_fraud),
+                    route,
+                    json.dumps(triggered_rules or []),
+                    json.dumps(top_contributions or []),
                     float(latency_ms),
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )
             return int(cursor.lastrowid)
+
+    def record_disposition(self, request_id: str, disposition: str, reviewer_id: str, notes: str = "") -> None:
+        if disposition not in {"APPROVED", "CONFIRMED_FRAUD", "ESCALATED"}:
+            raise ValueError("Invalid analyst disposition")
+        with self._connect() as connection:
+            found = connection.execute("SELECT 1 FROM prediction_history WHERE request_id = ?", (request_id,)).fetchone()
+            if found is None:
+                raise ValueError(f"Request ID {request_id} was not found")
+            connection.execute(
+                "INSERT INTO analyst_dispositions (request_id, disposition, reviewer_id, notes, created_at) VALUES (?, ?, ?, ?, ?)",
+                (request_id, disposition, reviewer_id, notes, datetime.now(timezone.utc).isoformat()),
+            )
 
     def summary(self, limit: int = 1000) -> dict[str, Any]:
         with self._connect() as connection:

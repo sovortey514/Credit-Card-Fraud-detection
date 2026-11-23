@@ -16,6 +16,7 @@ import time
 from uuid import uuid4
 
 from app.services.prediction_history import PredictionHistoryRepository
+from app.services.risk_engine import RiskEngine
 from src.fraud_detection.preprocessing_pipeline import RollingAmountHistory
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -48,6 +49,7 @@ class CreditCardModelService:
     def __init__(self, history_repository: PredictionHistoryRepository | None = None) -> None:
         self.preprocessing = joblib.load(PREPROCESSING_PATH)
         self.history_repository = history_repository or PredictionHistoryRepository()
+        self.risk_engine = RiskEngine()
         self.models: dict[str, dict[str, object]] = {}
         self._histories: dict[str, RollingAmountHistory] = {}
         calibration = json.loads(CALIBRATION_PATH.read_text(encoding="utf-8")) if CALIBRATION_PATH.exists() else {"models": {}}
@@ -111,9 +113,19 @@ class CreditCardModelService:
         features = self._features(transaction, model_name, context_id)
         probability = float(item["model"].predict_proba(features)[0, 1])
         threshold = float(item["threshold"])
+        request_id = uuid4().hex
+        risk = self.risk_engine.evaluate(
+            entity_key=transaction.account_id or transaction.card_id or f"context:{context_id or 'api'}",
+            timestamp=transaction.Time,
+            amount=transaction.Amount,
+            ml_probability=probability,
+            ml_threshold=threshold,
+        )
+        route = str(risk["route"])
+        contributions = self._contributions(item, features, 3)
         try:
             self.history_repository.record(
-                request_id=uuid4().hex,
+                request_id=request_id,
                 source="replay" if context_id and context_id.startswith("replay-") else "api",
                 context_id=context_id,
                 transaction_time=transaction.Time,
@@ -123,17 +135,26 @@ class CreditCardModelService:
                 feature_version="creditcard-f1-stateful-v1" if context_id else "creditcard-f1-reference-v1",
                 probability=probability,
                 threshold=threshold,
-                is_fraud=probability >= threshold,
+                is_fraud=route == "flag",
+                route=route,
+                triggered_rules=risk["triggered_rules"],
+                top_contributions=[item.model_dump() for item in contributions],
                 latency_ms=(time.perf_counter() - started) * 1000,
             )
         except Exception:
             # Monitoring persistence is fail-open for this research prototype.
             pass
         return PredictionResponse(
+            request_id=request_id,
             model=model_name,
             fraud_probability=probability,
-            is_fraud=probability >= threshold,
+            is_fraud=route == "flag",
             threshold=threshold,
+            ml_probability=probability,
+            route=route,
+            triggered_rules=risk["triggered_rules"],
+            velocity=risk["velocity"],
+            top_contributions=contributions,
         )
 
     def explain(self, transaction: CreditCardTransaction, model_name: str, top_n: int = 3, context_id: str | None = None) -> ExplanationResponse:
@@ -141,9 +162,36 @@ class CreditCardModelService:
         features = self._features(transaction, model_name, context_id)
         probability = float(item["model"].predict_proba(features)[0, 1])
         threshold = float(item["threshold"])
+        contributions = self._contributions(item, features, top_n)
+        request_id = uuid4().hex
+        risk = self.risk_engine.evaluate(
+            entity_key=transaction.account_id or transaction.card_id or f"context:{context_id or 'api'}",
+            timestamp=transaction.Time,
+            amount=transaction.Amount,
+            ml_probability=probability,
+            ml_threshold=threshold,
+            commit=False,
+        )
+        route = str(risk["route"])
+        return ExplanationResponse(
+            request_id=request_id,
+            model=model_name,
+            fraud_probability=probability,
+            is_fraud=route == "flag",
+            threshold=threshold,
+            ml_probability=probability,
+            route=route,
+            triggered_rules=risk["triggered_rules"],
+            velocity=risk["velocity"],
+            top_contributions=contributions,
+            base_value=_class_one_base_value(item["explainer"]),
+        )
+
+    @staticmethod
+    def _contributions(item: dict[str, object], features: pd.DataFrame, top_n: int) -> list[SHAPContribution]:
         values = _class_one_values(item["explainer"], features)[0]
         ranking = pd.Series(values, index=features.columns).sort_values(key=np.abs, ascending=False).head(top_n)
-        contributions = [
+        return [
             SHAPContribution(
                 feature=str(feature),
                 value=float(value),
@@ -151,11 +199,3 @@ class CreditCardModelService:
             )
             for feature, value in ranking.items()
         ]
-        return ExplanationResponse(
-            model=model_name,
-            fraud_probability=probability,
-            is_fraud=probability >= threshold,
-            threshold=threshold,
-            base_value=_class_one_base_value(item["explainer"]),
-            top_contributions=contributions,
-        )

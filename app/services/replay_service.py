@@ -51,6 +51,12 @@ class CreditCardReplayService:
             fraud_probability=prediction.fraud_probability,
             is_fraud=prediction.is_fraud,
             threshold=prediction.threshold,
+            ml_probability=prediction.ml_probability,
+            route=prediction.route,
+            triggered_rules=prediction.triggered_rules,
+            velocity=prediction.velocity,
+            request_id=prediction.request_id,
+            top_contributions=[item.model_dump() for item in prediction.top_contributions],
             latency_ms=(time.perf_counter() - started) * 1000,
             pca_features={name: float(getattr(transaction, name)) for name in ("V14", "V17", "V12", "V10")},
         )

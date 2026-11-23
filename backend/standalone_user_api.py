@@ -20,6 +20,7 @@ Production settings:
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -188,8 +189,22 @@ def init_db() -> None:
                 created_at VARCHAR(40) NOT NULL,
                 CONSTRAINT fk_auth_audit_actor FOREIGN KEY (actor_user_id) REFERENCES auth_users(id) ON DELETE SET NULL
             ) ENGINE=InnoDB;
+            CREATE TABLE IF NOT EXISTS auth_cards (
+                id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                owner_user_id BIGINT NOT NULL,
+                token_hash CHAR(64) NOT NULL UNIQUE,
+                brand VARCHAR(30) NOT NULL,
+                last4 CHAR(4) NOT NULL,
+                exp_month TINYINT NOT NULL,
+                exp_year SMALLINT NOT NULL,
+                status ENUM('active','blocked','frozen','expired','cancelled') NOT NULL DEFAULT 'active',
+                created_at VARCHAR(40) NOT NULL,
+                updated_at VARCHAR(40) NOT NULL,
+                CONSTRAINT fk_auth_card_owner FOREIGN KEY (owner_user_id) REFERENCES auth_users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
             """
         )
+        conn.execute("ALTER TABLE auth_cards MODIFY COLUMN status ENUM('active','blocked','frozen','expired','cancelled') NOT NULL DEFAULT 'active'")
         email = os.getenv("AUTH_BOOTSTRAP_EMAIL", "").strip().lower()
         password = os.getenv("AUTH_BOOTSTRAP_PASSWORD", "")
         bootstrap_role = os.getenv("AUTH_BOOTSTRAP_ROLE", "super_admin").strip().lower()
@@ -339,6 +354,68 @@ class UserPatch(APIModel):
 class ProfilePatch(APIModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
     email: str | None = Field(default=None, min_length=5, max_length=254)
+
+
+class CardCreate(APIModel):
+    card_number: str = Field(min_length=12, max_length=19)
+    exp_month: int = Field(ge=1, le=12)
+    exp_year: int = Field(ge=2000, le=2200)
+    owner_user_id: int | None = Field(default=None, ge=1)
+
+
+class CardPatch(APIModel):
+    exp_month: int | None = Field(default=None, ge=1, le=12)
+    exp_year: int | None = Field(default=None, ge=2000, le=2200)
+    status: str | None = Field(default=None, pattern="^(active|blocked|frozen|expired|cancelled)$")
+
+
+class CardReplacement(APIModel):
+    card_number: str = Field(min_length=12, max_length=19)
+    exp_month: int = Field(ge=1, le=12)
+    exp_year: int = Field(ge=2000, le=2200)
+
+
+def normalize_card_number(value: str) -> str:
+    number = re.sub(r"[ -]", "", value)
+    if not number.isdigit() or not 12 <= len(number) <= 19:
+        raise HTTPException(422, "Card number must contain 12 to 19 digits")
+    checksum = 0
+    parity = len(number) % 2
+    for index, digit in enumerate(map(int, number)):
+        if index % 2 == parity:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        checksum += digit
+    if checksum % 10 != 0:
+        raise HTTPException(422, "Card number failed checksum validation")
+    return number
+
+
+def card_brand(number: str) -> str:
+    if number.startswith("4"):
+        return "visa"
+    if number[:2] in {"34", "37"}:
+        return "amex"
+    if 51 <= int(number[:2]) <= 55 or 2221 <= int(number[:4]) <= 2720:
+        return "mastercard"
+    if number.startswith("6"):
+        return "discover"
+    return "unknown"
+
+
+def card_view(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "owner_user_id": row["owner_user_id"],
+        "brand": row["brand"],
+        "last4": row["last4"],
+        "exp_month": row["exp_month"],
+        "exp_year": row["exp_year"],
+        "status": row["status"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
 
 
 app = FastAPI(title="Standalone User Management API", version="1.0.0", description="JWT authentication, Argon2 passwords, RBAC, account management, and audit logs")
@@ -509,6 +586,133 @@ def change_password(payload: ChangePassword, user: User) -> dict[str, str]:
 @app.get("/api/v1/permissions")
 def permissions(user: User) -> dict[str, Any]:
     return {"role": user["role"], "permissions": sorted(ROLE_PERMISSIONS[user["role"]])}
+
+
+@app.post("/api/v1/cards", status_code=201)
+def create_card(payload: CardCreate, user: User) -> dict[str, Any]:
+    owner_id = payload.owner_user_id or int(user["id"])
+    if owner_id != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only administrators can create cards for another user")
+    if not get_user(owner_id):
+        raise HTTPException(404, "Card owner was not found")
+    number = normalize_card_number(payload.card_number)
+    token_hash = hmac.new(JWT_SECRET.encode(), number.encode(), hashlib.sha256).hexdigest()
+    now = timestamp()
+    try:
+        with connection() as conn:
+            card_id = conn.execute(
+                "INSERT INTO auth_cards(owner_user_id,token_hash,brand,last4,exp_month,exp_year,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+                (owner_id, token_hash, card_brand(number), number[-4:], payload.exp_month, payload.exp_year, now, now),
+            ).lastrowid
+            row = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    except mysql.connector.IntegrityError as error:
+        raise HTTPException(409, "This card is already registered") from error
+    write_audit(user["id"], "card_created", owner_id, json.dumps({"card_id": card_id, "last4": number[-4:]}))
+    return {"card": card_view(row)}
+
+
+@app.get("/api/v1/cards")
+def list_cards(user: User, owner_user_id: int | None = Query(default=None, ge=1)) -> dict[str, Any]:
+    requested_owner = owner_user_id or int(user["id"])
+    if requested_owner != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only administrators can view another user's cards")
+    with connection() as conn:
+        rows = conn.execute("SELECT * FROM auth_cards WHERE owner_user_id=? ORDER BY id DESC", (requested_owner,)).fetchall()
+    return {"items": [card_view(row) for row in rows]}
+
+
+@app.patch("/api/v1/cards/{card_id}")
+def update_card(card_id: int, payload: CardPatch, user: User) -> dict[str, Any]:
+    with connection() as conn:
+        card = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    if not card:
+        raise HTTPException(404, "Card not found")
+    if card["owner_user_id"] != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only the card owner or an administrator can modify this card")
+    changes = payload.model_dump(exclude_none=True)
+    if not changes:
+        raise HTTPException(422, "At least one card field is required")
+    with connection() as conn:
+        conn.execute(
+            f"UPDATE auth_cards SET {','.join(f'{key}=?' for key in changes)},updated_at=? WHERE id=?",
+            (*changes.values(), timestamp(), card_id),
+        )
+        updated = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    write_audit(user["id"], "card_updated", card["owner_user_id"], json.dumps({"card_id": card_id, "changes": list(changes)}))
+    return {"card": card_view(updated)}
+
+
+@app.delete("/api/v1/cards/{card_id}")
+def delete_card(card_id: int, user: User) -> dict[str, str]:
+    with connection() as conn:
+        card = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    if not card:
+        raise HTTPException(404, "Card not found")
+    if card["owner_user_id"] != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only the card owner or an administrator can delete this card")
+    with connection() as conn:
+        conn.execute("DELETE FROM auth_cards WHERE id=?", (card_id,))
+    write_audit(user["id"], "card_deleted", card["owner_user_id"], json.dumps({"card_id": card_id, "last4": card["last4"]}))
+    return {"message": "Card deleted successfully"}
+
+
+def _change_card_status(card_id: int, next_status: str, user: dict[str, Any]) -> dict[str, Any]:
+    with connection() as conn:
+        card = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    if not card:
+        raise HTTPException(404, "Card not found")
+    if card["owner_user_id"] != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only the card owner or an administrator can change this card")
+    with connection() as conn:
+        conn.execute("UPDATE auth_cards SET status=?,updated_at=? WHERE id=?", (next_status, timestamp(), card_id))
+        updated = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    write_audit(user["id"], f"card_{next_status}", card["owner_user_id"], json.dumps({"card_id": card_id, "from": card["status"], "to": next_status}))
+    return {"card": card_view(updated)}
+
+
+@app.post("/api/v1/cards/{card_id}/activate")
+def activate_card(card_id: int, user: User) -> dict[str, Any]:
+    return _change_card_status(card_id, "active", user)
+
+
+@app.post("/api/v1/cards/{card_id}/freeze")
+def freeze_card(card_id: int, user: User) -> dict[str, Any]:
+    return _change_card_status(card_id, "frozen", user)
+
+
+@app.post("/api/v1/cards/{card_id}/unblock")
+def unblock_card(card_id: int, user: User) -> dict[str, Any]:
+    return _change_card_status(card_id, "active", user)
+
+
+@app.post("/api/v1/cards/{card_id}/cancel")
+def cancel_card(card_id: int, user: User) -> dict[str, Any]:
+    return _change_card_status(card_id, "cancelled", user)
+
+
+@app.post("/api/v1/cards/{card_id}/replace", status_code=201)
+def replace_card(card_id: int, payload: CardReplacement, user: User) -> dict[str, Any]:
+    with connection() as conn:
+        old_card = conn.execute("SELECT * FROM auth_cards WHERE id=?", (card_id,)).fetchone()
+    if not old_card:
+        raise HTTPException(404, "Card not found")
+    if old_card["owner_user_id"] != user["id"] and user["role"] not in {"admin", "super_admin"}:
+        raise HTTPException(403, "Only the card owner or an administrator can replace this card")
+    number = normalize_card_number(payload.card_number)
+    token_hash = hmac.new(JWT_SECRET.encode(), number.encode(), hashlib.sha256).hexdigest()
+    now = timestamp()
+    try:
+        with connection() as conn:
+            conn.execute("UPDATE auth_cards SET status='cancelled',updated_at=? WHERE id=?", (now, card_id))
+            new_id = conn.execute(
+                "INSERT INTO auth_cards(owner_user_id,token_hash,brand,last4,exp_month,exp_year,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+                (old_card["owner_user_id"], token_hash, card_brand(number), number[-4:], payload.exp_month, payload.exp_year, now, now),
+            ).lastrowid
+            replacement = conn.execute("SELECT * FROM auth_cards WHERE id=?", (new_id,)).fetchone()
+    except mysql.connector.IntegrityError as error:
+        raise HTTPException(409, "The replacement card is already registered") from error
+    write_audit(user["id"], "card_replaced", old_card["owner_user_id"], json.dumps({"old_card_id": card_id, "new_card_id": new_id}))
+    return {"card": card_view(replacement), "replaced_card_id": card_id}
 
 
 @app.get("/api/v1/users")

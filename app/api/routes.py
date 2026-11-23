@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
-from app.schemas.creditcard import CreditCardTransaction, ExplanationResponse, PredictionResponse
+from app.schemas.creditcard import AnalystDisposition, CreditCardTransaction, ExplanationResponse, PredictionResponse
 from app.schemas.replay import ReplayAck, ReplayComplete
 from app.services.model_service import CreditCardModelService
 from app.services.replay_service import ALLOWED_SPEEDS, CreditCardReplayService, sse_message
@@ -47,6 +47,21 @@ def monitoring_summary() -> dict:
 def monitoring_recent(limit: int = Query(100, ge=1, le=500)) -> list[dict]:
     """Return recent prediction metadata without raw transaction payloads."""
     return service.history_repository.recent(limit)
+
+
+@router.post("/alerts/{request_id}/disposition")
+def record_disposition(request_id: str, disposition: AnalystDisposition) -> dict[str, str]:
+    """Store the analyst's review outcome for a scored transaction."""
+    try:
+        service.history_repository.record_disposition(
+            request_id,
+            disposition.disposition,
+            disposition.reviewer_id,
+            disposition.notes,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return {"request_id": request_id, "status": disposition.disposition}
 
 
 @router.get("/replay/stream")
