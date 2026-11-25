@@ -72,12 +72,14 @@ class CreditCardModelService:
 
     def reset_history(self, context_id: str = "default", initial_amounts: np.ndarray | None = None) -> None:
         """Reset one explicitly scoped chronological inference context."""
+        transformer = self.preprocessing.named_steps["credit_card_features"]
         if initial_amounts is None:
-            transformer = self.preprocessing.named_steps["credit_card_features"]
             initial_amounts = getattr(transformer, "train_amounts_", np.asarray([], dtype=float))[-1_000:]
         self._histories[context_id] = RollingAmountHistory(
             window=getattr(self.preprocessing.named_steps["credit_card_features"], "rolling_window", 1_000),
             initial_amounts=initial_amounts,
+            fallback_mean=transformer.train_amount_mean_,
+            fallback_std=transformer.train_amount_std_,
         )
 
     def _history(self, context_id: str) -> RollingAmountHistory:

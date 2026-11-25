@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PATH = ROOT / "data" / "prediction_history.db"
+DEFAULT_PATH = Path(os.getenv("PREDICTION_HISTORY_PATH", str(ROOT / "data" / "prediction_history.db")))
 
 
 class PredictionHistoryRepository:
@@ -136,6 +137,32 @@ class PredictionHistoryRepository:
                 "INSERT INTO analyst_dispositions (request_id, disposition, reviewer_id, notes, created_at) VALUES (?, ?, ?, ?, ?)",
                 (request_id, disposition, reviewer_id, notes, datetime.now(timezone.utc).isoformat()),
             )
+
+    def alerts(self, overdue_seconds: int = 300, limit: int = 100) -> list[dict[str, Any]]:
+        """Return flagged predictions with status derived from elapsed wall time."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=overdue_seconds)).isoformat()
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT p.request_id, p.created_at, p.model, p.probability, p.threshold,
+                       p.transaction_time, d.disposition, d.reviewer_id, d.notes,
+                       d.created_at AS reviewed_at,
+                       CASE WHEN d.id IS NOT NULL THEN 'reviewed'
+                            WHEN p.created_at <= ? THEN 'overdue'
+                            ELSE 'pending' END AS status
+                FROM prediction_history p
+                LEFT JOIN analyst_dispositions d ON d.id = (
+                    SELECT id FROM analyst_dispositions WHERE request_id = p.request_id
+                    ORDER BY id DESC LIMIT 1
+                )
+                WHERE p.is_fraud = 1
+                ORDER BY CASE WHEN d.id IS NULL AND p.created_at <= ? THEN 0
+                              WHEN d.id IS NULL THEN 1 ELSE 2 END, p.id DESC
+                LIMIT ?
+                """,
+                (cutoff, cutoff, max(1, min(int(limit), 500))),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def summary(self, limit: int = 1000) -> dict[str, Any]:
         with self._connect() as connection:

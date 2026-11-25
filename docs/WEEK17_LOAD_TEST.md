@@ -1,5 +1,25 @@
 # Week 17: prediction and explanation load test
 
+## Offline and replay consistency
+
+The local consistency test `tests/test_offline_replay_consistency.py` compares
+the first 30 chronological test transactions for each saved Random Forest and
+XGBoost model. It initializes replay with train and validation amount history,
+compares the replay service's ML probabilities with predictions from the saved
+offline feature table, and checks how high-severity rules can affect the final
+route. Both model cases passed in the local environment. This is a limited
+service-level check, not an HTTP, full-dataset, or independent holdout evaluation;
+SHAP and history persistence are disabled in the test. The test partition had
+already been exposed during development, as documented in the final manifest.
+
+## Local functional checks
+
+The API, replay, and prediction-history integration tests passed (7 tests),
+and the React dashboard production build succeeded. These checks exercise the
+application components but do not establish a complete interactive browser
+workflow or system performance under load. The `k6` command was not available
+on PATH in the local environment, so the load test below was not run.
+
 Start the fraud API with the same model artifacts and configuration intended for the benchmark. Install k6, create `reports/load-tests`, and run each sustained level separately from the repository root:
 
 ```powershell

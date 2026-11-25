@@ -44,10 +44,12 @@ def _validate_input(frame: pd.DataFrame) -> None:
 class RollingAmountHistory:
     """Bounded chronological state matching the offline rolling features."""
 
-    def __init__(self, window: int = 1_000, initial_amounts: np.ndarray | None = None) -> None:
+    def __init__(self, window: int = 1_000, initial_amounts: np.ndarray | None = None, fallback_mean: float = 0.0, fallback_std: float = 1.0) -> None:
         if window < 1:
             raise ValueError("rolling window must be positive")
         self.window = int(window)
+        self.fallback_mean = float(fallback_mean)
+        self.fallback_std = float(fallback_std) or 1.0
         self._values: deque[float] = deque(maxlen=self.window)
         self.last_time: float | None = None
         if initial_amounts is not None:
@@ -69,15 +71,17 @@ class RollingAmountHistory:
                 raise ValueError("Transactions must be processed in chronological order")
 
         prior = np.asarray(self._values, dtype=float)
-        if prior.size:
+        if prior.size >= 2 and float(prior.std(ddof=0)) != 0:
             mean = float(prior.mean())
             std = float(prior.std(ddof=0))
-            zscore = (amount - mean) / (std if std else 1.0)
+            zscore = (amount - mean) / std
         else:
-            zscore = 0.0
+            zscore = (amount - self.fallback_mean) / self.fallback_std
 
-        current = np.concatenate([prior, np.asarray([amount])])
-        percentile = float((current <= amount).sum() / current.size)
+        current = np.concatenate([prior[-(self.window - 1):] if self.window > 1 else prior[:0], np.asarray([amount])])
+        less = int((current < amount).sum())
+        equal = int((current == amount).sum())
+        percentile = float((less + (equal + 1) / 2) / current.size)
         self._values.append(amount)
         self.last_time = time
         return zscore, percentile
@@ -160,7 +164,7 @@ class CreditCardFeatureTransformer(BaseEstimator, TransformerMixin):
             raise RuntimeError("CreditCardFeatureTransformer must be fitted first")
         _validate_input(X)
         result = self.transform(X)
-        history = RollingAmountHistory(self.rolling_window, initial_amounts)
+        history = RollingAmountHistory(self.rolling_window, initial_amounts, self.train_amount_mean_, self.train_amount_std_)
         rolling_zscores: list[float] = []
         rolling_percentiles: list[float] = []
         for row in X.sort_values("Time", kind="stable").itertuples(index=False):

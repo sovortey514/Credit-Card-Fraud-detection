@@ -20,10 +20,13 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+    environment:
+      PREDICTION_HISTORY_PATH: /app/history/prediction_history.db
     volumes:
       - ./models:/app/models:ro
       - ./data:/app/data:ro
       - ./reports:/app/reports:ro
+      - prediction_history:/app/history
 
   auth:
     build: .
@@ -57,3 +60,4 @@ services:
 
 volumes:
   mysql_data:
+  prediction_history:

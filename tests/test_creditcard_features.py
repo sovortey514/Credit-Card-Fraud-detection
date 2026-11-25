@@ -7,6 +7,7 @@ from src.fraud_detection.preprocessing_pipeline import (
     build_creditcard_preprocessing_pipeline,
 )
 from src.fraud_detection.diagram_preprocessing import prepare_diagram_splits
+from src.fraud_detection.engineer_creditcard_features import _add_amount_features
 
 
 def _split(times, amounts):
@@ -68,8 +69,8 @@ def test_rolling_history_is_chronological_and_resettable():
     history = RollingAmountHistory(window=2)
     first = history.transform_amount(10, 1)
     second = history.transform_amount(20, 2)
-    assert first == pytest.approx((0.0, 1.0))
-    assert second[0] == pytest.approx(10.0)
+    assert first == pytest.approx((10.0, 1.0))
+    assert second[0] == pytest.approx(20.0)
     assert second[1] == pytest.approx(1.0)
     with pytest.raises(ValueError, match="chronological"):
         history.transform_amount(30, 1)
@@ -82,7 +83,7 @@ def test_sequential_transform_uses_prior_history_and_current_percentile():
     pipeline = build_creditcard_preprocessing_pipeline().fit(frame)
     transformed = pipeline.named_steps["credit_card_features"].transform_sequential(frame)
     assert transformed["amount_rolling_percentile"].tolist() == pytest.approx([1.0, 1.0, 1 / 3])
-    assert transformed["amount_rolling_zscore"].iloc[1] == pytest.approx(10.0)
+    assert transformed["amount_rolling_zscore"].iloc[1] == pytest.approx((20 - 35 / 3) / np.std([10, 20, 5]))
 
 
 
@@ -96,3 +97,14 @@ def test_sequential_transform_uses_prior_history_and_current_percentile():
     pipeline.transform(frame)
     elapsed_ms_per_transaction = (time.perf_counter() - started) * 1_000 / len(frame)
     assert elapsed_ms_per_transaction < 2.0
+
+
+def test_online_rolling_matches_offline_with_ties_and_full_window():
+    amounts = [10., 10., 20., 10., 20., 30.] * 200
+    train = np.array([1., 2., 3., 4.])
+    offline = pd.DataFrame({"Amount": amounts})
+    _add_amount_features(offline, train)
+    history = RollingAmountHistory(1000, fallback_mean=train.mean(), fallback_std=train.std())
+    online = np.array([history.transform_amount(amount, i) for i, amount in enumerate(amounts)])
+    np.testing.assert_allclose(online[:, 0], offline["amount_rolling_zscore"], rtol=1e-9, atol=1e-9)
+    np.testing.assert_allclose(online[:, 1], offline["amount_rolling_percentile"], rtol=1e-9, atol=1e-9)

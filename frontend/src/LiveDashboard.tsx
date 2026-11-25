@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AUTH_API_URL, AuthScreen, UserManagement, apiError, toSessionUser, type SessionUser } from './auth';
 import { getMessages, type Language } from './i18n';
-import { CardManagement } from './CardManagement';
 
 type ReplaySpeed = 1 | 2 | 5 | 10 | 50 | 100 | 250;
 type ReplayEvent = {
@@ -23,10 +22,50 @@ type ReplayEvent = {
 };
 
 type ReplayComplete = { type: 'complete'; emitted: number; acknowledged: number; dropped: number };
-type DashboardView = 'monitor' | 'users' | 'cards';
+type DashboardView = 'monitor' | 'users';
 
 const WS_URL = import.meta.env.VITE_REPLAY_WS_URL ?? 'ws://localhost:8000/api/v1/replay/ws';
 const SPEEDS: ReplaySpeed[] = [1, 2, 5, 10, 50, 100, 250];
+
+type Alert = { request_id: string; created_at: string; model: string; probability: number; status: 'pending' | 'overdue' | 'reviewed'; disposition: string | null; notes: string | null };
+
+function AlertQueue({ reviewer }: { reviewer: string }) {
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [deadline, setDeadline] = useState(300);
+  const [error, setError] = useState('');
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const api = import.meta.env.VITE_FRAUD_API_URL ?? 'http://localhost:8000';
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch(`${api}/api/v1/alerts?overdue_seconds=${deadline}`);
+        if (!response.ok) throw new Error('Unable to load alerts');
+        const data = await response.json() as Alert[];
+        if (active) { setAlerts(data); setError(''); }
+      } catch { if (active) setError('Unable to load alerts. Check the fraud API.'); }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [api, deadline]);
+  async function review(alert: Alert, disposition: string) {
+    try {
+      const response = await fetch(`${api}/api/v1/alerts/${encodeURIComponent(alert.request_id)}/disposition`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disposition, reviewer_id: reviewer, notes: notes[alert.request_id] ?? '' }),
+      });
+      if (!response.ok) throw new Error('Unable to save review');
+      setAlerts((current) => current.map((item) => item.request_id === alert.request_id ? { ...item, status: 'reviewed', disposition } : item));
+      setError('');
+    } catch { setError('Unable to save review. Please try again.'); }
+  }
+  return <section className="dashboard-card mt-6 rounded-2xl border border-slate-800 bg-[#0d1d2c] p-5" aria-label="Alert review queue">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold text-white">Alert review queue</h2><p className="mt-1 text-xs text-slate-400">Historical replay alerts use elapsed real time. Overdue alerts appear first.</p></div><label className="text-xs text-slate-300">Overdue after <select value={deadline} onChange={(event) => setDeadline(Number(event.target.value))} className="ml-2 rounded border border-slate-700 bg-slate-900 p-2"><option value={60}>1 minute</option><option value={300}>5 minutes</option><option value={900}>15 minutes</option><option value={3600}>1 hour</option></select></label></div>
+    {error && <p role="alert" className="mt-3 text-sm text-rose-300">{error}</p>}
+    <div className="mt-4 max-h-96 space-y-3 overflow-y-auto">{alerts.length === 0 ? <p className="py-4 text-sm text-slate-500">No alerts yet. Start a replay to generate alerts.</p> : alerts.map((alert) => <article key={alert.request_id} className={`rounded-xl border p-4 ${alert.status === 'overdue' ? 'border-rose-400/60 bg-rose-400/5' : 'border-slate-700'}`}><div className="flex flex-wrap justify-between gap-2 text-xs"><span className="font-semibold text-slate-200">{alert.model} · {(alert.probability * 100).toFixed(1)}% risk · {new Date(alert.created_at).toLocaleString()}</span><span className={alert.status === 'overdue' ? 'font-bold text-rose-300' : 'font-bold text-cyan-200'}>{alert.status === 'pending' ? 'PENDING REVIEW' : alert.status.toUpperCase()}</span></div>{alert.status === 'reviewed' ? <p className="mt-2 text-xs text-slate-400">Outcome: {alert.disposition?.replaceAll('_', ' ')}{alert.notes ? ` · ${alert.notes}` : ''}</p> : <div className="mt-3 flex flex-wrap gap-2"><input aria-label="Review notes" maxLength={2000} placeholder="Review notes (optional)" value={notes[alert.request_id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [alert.request_id]: event.target.value }))} className="min-w-40 flex-1 rounded border border-slate-700 bg-slate-900 p-2 text-xs text-white" /><button onClick={() => void review(alert, 'APPROVED')} className="rounded bg-emerald-400/15 px-3 py-2 text-xs text-emerald-200">Approve</button><button onClick={() => void review(alert, 'CONFIRMED_FRAUD')} className="rounded bg-rose-400/15 px-3 py-2 text-xs text-rose-200">Confirm fraud</button><button onClick={() => void review(alert, 'ESCALATED')} className="rounded bg-amber-400/15 px-3 py-2 text-xs text-amber-200">Escalate</button></div>}</article>)}</div>
+  </section>;
+}
 
 function AlertExplanation({ event }: { event: ReplayEvent }) {
   const [data, setData] = useState<{ base_value: number; top_contributions: { feature: string; value: number; direction: string }[] } | null>(null);
@@ -84,7 +123,6 @@ function DashboardSidebar({
       <p className="mb-3 mt-12 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">{kh ? 'កន្លែងធ្វើការ' : 'Workspace'}</p>
       <nav className="space-y-1">
         <button onClick={() => onViewChange('monitor')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'monitor' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">▦</span>{kh ? 'តាមដានផ្ទាល់' : 'Live monitor'}</button>
-        <button onClick={() => onViewChange('cards')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'cards' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">▣</span>{kh ? 'គ្រប់គ្រងកាត' : 'Manage cards'}</button>
         {canManageUsers && <button onClick={() => onViewChange('users')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${view === 'users' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-200'}`}><span className="text-base">♙</span>{getMessages(language).userManagement}</button>}
       </nav>
       <div className="dashboard-sidebar-bottom mt-auto space-y-4">
@@ -269,15 +307,6 @@ export default function LiveDashboard() {
     );
   }
 
-  if (view === 'cards') {
-    return (
-      <div className={`dashboard-shell flex min-h-screen bg-[#08131f] text-slate-100 ${theme === 'light' ? 'dashboard-theme-light' : ''}`}>
-        <DashboardSidebar currentUser={currentUser} view={view} canManageUsers={canManageUsers} connected={connected} onViewChange={setView} onLogout={() => void logout()} language={language} />
-        <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-10"><div className="mx-auto max-w-[1480px]"><header className="dashboard-page-header mb-8 flex items-center justify-between gap-4"><div><p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">TransferGuard / card security</p><h1 className="mt-3 text-3xl font-semibold text-white">Card management</h1></div><button onClick={() => setView('monitor')} className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300">Live monitor</button></header><CardManagement currentUser={currentUser} token={authToken} /></div></main>
-      </div>
-    );
-  }
-
   return (
     <div className={`dashboard-shell flex min-h-screen bg-[#08131f] text-slate-100 selection:bg-cyan-300 selection:text-[#08131f] ${theme === 'light' ? 'dashboard-theme-light' : ''}`}>
       <DashboardSidebar currentUser={currentUser} view={view} canManageUsers={canManageUsers} connected={connected} onViewChange={setView} onLogout={() => void logout()} language={language} />
@@ -308,7 +337,8 @@ export default function LiveDashboard() {
           ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_310px]">
+        <AlertQueue reviewer={currentUser.email ?? currentUser.name} />
+        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_310px]">
           <article className="dashboard-card dashboard-feed overflow-hidden rounded-2xl border border-slate-800 bg-[#0d1d2c]">
             <div className="flex flex-col justify-between gap-4 border-b border-slate-800 px-5 py-4 sm:flex-row sm:items-center">
               <div><h2 className="text-sm font-semibold text-white">{kh ? 'ប្រតិបត្តិការផ្ទាល់' : 'Live transaction feed'}</h2><p className="mt-1 text-xs text-slate-500">{kh ? 'ចុចប្រតិបត្តិការដែលបានសម្គាល់ ដើម្បីពិនិត្យព័ត៌មាន។' : 'Click a flagged transaction to inspect the scoring payload.'}</p></div>

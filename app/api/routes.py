@@ -64,6 +64,12 @@ def record_disposition(request_id: str, disposition: AnalystDisposition) -> dict
     return {"request_id": request_id, "status": disposition.disposition}
 
 
+@router.get("/alerts")
+def list_alerts(overdue_seconds: int = Query(300, ge=1, le=604800), limit: int = Query(100, ge=1, le=500)) -> list[dict]:
+    """List flagged predictions, prioritizing those awaiting review past the deadline."""
+    return service.history_repository.alerts(overdue_seconds, limit)
+
+
 @router.get("/replay/stream")
 async def replay_stream(
     speed: int = Query(10, description="Held-out replay speed in transactions per second"),

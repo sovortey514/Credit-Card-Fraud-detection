@@ -2639,7 +2639,7 @@ body { color: var(--page-text) !important; }
 
 /* Login palette matches the dashboard's navy surfaces and cyan accents. */
 .auth-shell { background: #08131f !important; color: #e2e8f0 !important; }
-.auth-story { background: radial-gradient(ellipse at 80% 85%, #123a4c 0, transparent 48%), linear-gradient(145deg, #0a1724, #102638) !important; }
+.auth-story { background: url('/card-security.svg') no-repeat right -15px bottom 8%, radial-gradient(ellipse at 80% 85%, #123a4c 0, transparent 48%), linear-gradient(145deg, #0a1724, #102638) !important; background-size: min(48%, 430px) auto, auto, auto !important; }
 .auth-story::after { border-color: rgba(103, 232, 249, .16); box-shadow: 0 0 0 48px rgba(103, 232, 249, .035), 0 0 0 96px rgba(103, 232, 249, .025); }
 .auth-brand .brand-mark { background: #67e8f9 !important; color: #08131f !important; }
 .auth-brand .brand-name { color: #f8fafc !important; }
@@ -2648,6 +2648,21 @@ body { color: var(--page-text) !important; }
 .auth-story-copy p, .auth-story-footer { color: #b7cbd8 !important; }
 .auth-kicker, .auth-step { color: #67e8f9 !important; }
 .auth-panel { background: #0d1d2c !important; border-color: #203447 !important; }
+.auth-story .auth-kicker { font-size: 12px; }
+.auth-story-copy p { font-size: 16px; }
+.auth-story-footer { font-size: 10px; }
+.auth-panel .auth-step { font-size: 13px; }
+.auth-panel h2 { font-size: clamp(32px, 2.7vw, 36px); }
+.auth-panel .auth-subtitle { font-size: 17px; }
+.auth-panel .auth-form label { font-size: 16px; }
+.auth-panel .auth-form input { font-size: 17px; }
+.auth-panel .auth-form button { font-size: 16px; }
+.auth-panel .text-button { font-size: 15px; }
+.auth-panel .auth-footer { font-size: 13px; }
+@media (min-width: 769px) {
+  .auth-panel-inner { margin: auto; }
+  .auth-footer { margin: 0 auto; }
+}
 .auth-panel h2 { color: #f8fafc !important; }
 .auth-panel .auth-subtitle, .auth-panel .auth-footer { color: #a8bed0 !important; }
 .auth-form label { color: #cbdbe6 !important; }
