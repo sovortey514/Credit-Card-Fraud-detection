@@ -7,6 +7,24 @@ Research and application code for imbalanced credit-card fraud detection using t
 - Windows 11, Python 3.12 (or the Python version supported by the selected environment), and Node.js 20+ for the dashboard.
 - Place `creditcard.csv` at `data/raw/creditcard.csv`. The raw dataset is excluded from version control.
 
+Create a Python 3.12 virtual environment and install the dependencies with
+`python -m pip install -r requirements.txt -r requirements-data.txt`. Docker
+Compose uses the same main requirements file. Copy `.env.example` to `.env` and
+set `AUTH_JWT_SECRET` before running `docker compose up --build`.
+
+The project-wide default random seed is `42` in
+[`config.py`](src/fraud_detection/config.py); pass it explicitly to stochastic
+estimators and searches. Exact results can still vary across library versions,
+hardware, and parallel execution.
+
+The requested project layout maps to `data/raw/`, `src/features/`,
+`src/models/`, `api/`, `frontend/`, and `tests/`. Existing implementations
+remain in `src/features.py`, `src/fraud_detection/`, and `app/api/`; trained
+artifacts live in the ignored `models/` directory.
+
+The [four-week literature protocol](docs/LITERATURE_REVIEW_PROTOCOL.md) and
+[literature matrix](docs/LITERATURE_MATRIX.md) define the research workflow.
+
 ## Prepare the data
 
 ```powershell
@@ -17,6 +35,9 @@ Research and application code for imbalanced credit-card fraud detection using t
 ```
 
 Preparation sorts by time, removes duplicate rows, creates chronological train/validation/test partitions, fits scaling on training data only, and writes Parquet files and audit metadata under `data/processed/`.
+For the separate feature contract, run `python -m src.fraud_detection.task5_features` after preparation. It writes F0 (30 columns) and F1 (F0 plus seven engineered columns) metadata and splits under `data/engineered_features/`. Rolling mean and population standard deviation use only the previous 1,000 rows, with zero when no previous row exists and stable input order for equal timestamps. The hour encoding is a phase relative to the dataset start. These files do not change historical models or their feature contract.
+
+Run `python -m scripts.prepare_feature_contract` to fit and serialize the separate F0/F1 pipelines and benchmark single-row transformations. `POST /api/v1/features` accepts a transaction, `feature_set`, and optional `history` and `last_time`; pass the returned history and timestamp to the next chronological request. Start with empty history for a new stream, or supply the actual preceding amounts and timestamp for a later split. The endpoint is separate from existing prediction models and its history must be isolated by the caller. The local benchmark measures feature computation only, not HTTP or validation latency.
 The diagram-aligned feature pipeline then saves engineered splits and its fitted preprocessor under `data/diagram_aligned/`.
 
 ## Fit preprocessing and compare models

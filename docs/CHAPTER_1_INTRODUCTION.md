@@ -2,7 +2,7 @@
 
 ## 1.1 Background
 
-Electronic payment systems process large volumes of transactions and must distinguish legitimate activity from fraudulent activity with limited delay. Fraud detection is difficult because fraudulent transactions are rare, fraud patterns change over time, and a false positive can create operational cost for both customers and investigators. These characteristics make the problem a suitable application for supervised machine learning combined with chronological evaluation and operational decision thresholds.
+Electronic payment systems process large volumes of transactions and must distinguish legitimate activity from fraudulent activity with limited delay. Fraud detection is difficult because fraudulent transactions are rare, fraud patterns change over time, and a false positive can create operational cost for both customers and investigators [5, 8]. These characteristics make the problem a suitable application for supervised machine learning combined with chronological evaluation and operational decision thresholds. References are listed in the [bibliography](BIBLIOGRAPHY.md).
 
 This project develops a research prototype for credit-card transaction fraud detection using the Kaggle/ULB credit-card dataset. The system combines leakage-safe preprocessing, engineered temporal and amount features, imbalanced-learning strategies, model comparison, TreeSHAP explanations, a FastAPI inference service, chronological replay, and a React monitoring dashboard.
 

@@ -36,12 +36,22 @@ datasets/
 *.h5
 *.onnx
 models/
+!src/models/
+src/models/*
+!src/models/.gitkeep
 artifacts/
 *.pdf
 *.xlsx
 *.xls
 *.txt
 *.csv
+!requirements.txt
+!requirements-data.txt
+!data/
+data/*
+!data/raw/
+data/raw/*
+!data/raw/.gitkeep
 
 
 # Logs and local output
@@ -52,6 +62,7 @@ results/
 
 # IDE and operating-system files
 .vscode/
+node_modules/
 .idea/
 *.code-workspace
 .DS_Store

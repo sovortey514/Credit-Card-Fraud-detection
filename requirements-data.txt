@@ -1,0 +1,2 @@
+# Additional dependency for the reproducible Week 3–4 Parquet pipeline.
+pyarrow>=15,<20

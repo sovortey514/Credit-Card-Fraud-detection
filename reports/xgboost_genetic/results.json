@@ -1,0 +1,203 @@
+{
+  "seed": 42,
+  "feature_set": "F1",
+  "scale_pos_weight": 578,
+  "trees": 200,
+  "fitness": "inner chronological validation average precision (PR-AUC)",
+  "inner_train_rows": 158887,
+  "inner_validation_rows": 39722,
+  "outer_validation_rows": 42560,
+  "test_used": false,
+  "population_size": 6,
+  "generations": 3,
+  "best_parameters": {
+    "learning_rate": 0.2367076935956697,
+    "max_depth": 6,
+    "subsample": 0.943439167964553
+  },
+  "best_inner_average_precision": 0.7179210553378701,
+  "search_history": [
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.7179210553378701
+    },
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.21526304813662187,
+        "max_depth": 5,
+        "subsample": 0.6376709391550598
+      },
+      "average_precision": 0.6939440022685854
+    },
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.29317425845829165,
+        "max_depth": 7,
+        "subsample": 0.9144257221107815
+      },
+      "average_precision": 0.6995404055005443
+    },
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.05587181714915285,
+        "max_depth": 7,
+        "subsample": 0.7801543751582268
+      },
+      "average_precision": 0.6917543288812179
+    },
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.12382344678512273,
+        "max_depth": 3,
+        "subsample": 0.8575460480322659
+      },
+      "average_precision": 0.6117901381009957
+    },
+    {
+      "generation": 1,
+      "parameters": {
+        "learning_rate": 0.25037325171583236,
+        "max_depth": 8,
+        "subsample": 0.7773656795309325
+      },
+      "average_precision": 0.7002469382431992
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.7179210553378701
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.25037325171583236,
+        "max_depth": 6,
+        "subsample": 0.9882792097579614
+      },
+      "average_precision": 0.7013908574113853
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.29317425845829165,
+        "max_depth": 7,
+        "subsample": 0.7303301432552608
+      },
+      "average_precision": 0.6849014782733525
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 7,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.7005330103358016
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.05587181714915285,
+        "max_depth": 7,
+        "subsample": 0.7801543751582268
+      },
+      "average_precision": 0.6917543288812179
+    },
+    {
+      "generation": 2,
+      "parameters": {
+        "learning_rate": 0.21526304813662187,
+        "max_depth": 6,
+        "subsample": 0.6376709391550598
+      },
+      "average_precision": 0.7105461047756026
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.7179210553378701
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.08550305604229541,
+        "max_depth": 5,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.6950302788346742
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.6360191443102566
+      },
+      "average_precision": 0.6796125650445364
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 3,
+        "subsample": 0.8521130372475554
+      },
+      "average_precision": 0.6789775071259699
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.23805025311042247,
+        "max_depth": 3,
+        "subsample": 0.9882792097579614
+      },
+      "average_precision": 0.6621115421521332
+    },
+    {
+      "generation": 3,
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.943439167964553
+      },
+      "average_precision": 0.7179210553378701
+    }
+  ],
+  "models": {
+    "baseline": {
+      "parameters": {
+        "learning_rate": 0.3,
+        "max_depth": 6,
+        "subsample": 1.0
+      },
+      "validation_average_precision": 0.8255768289047036,
+      "validation_roc_auc": 0.9728019163520869
+    },
+    "genetic": {
+      "parameters": {
+        "learning_rate": 0.2367076935956697,
+        "max_depth": 6,
+        "subsample": 0.943439167964553
+      },
+      "validation_average_precision": 0.8456749855496177,
+      "validation_roc_auc": 0.9831878602517351
+    }
+  }
+}
